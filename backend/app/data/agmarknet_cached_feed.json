@@ -1,0 +1,18 @@
+{
+  "timestamp": "2026-09-06T18:30:00+05:30",
+  "source": "Agmarknet (data.gov.in)",
+  "state": "Maharashtra",
+  "records": [
+    {"commodity": "Soyabean", "market": "Latur", "district": "Latur", "modal_price": 5050.0, "min_price": 4800.0, "max_price": 5250.0, "arrival_date": "06/09/2026"},
+    {"commodity": "Soyabean", "market": "Pune", "district": "Pune", "modal_price": 5200.0, "min_price": 4950.0, "max_price": 5400.0, "arrival_date": "06/09/2026"},
+    {"commodity": "Cotton", "market": "Nagpur", "district": "Nagpur", "modal_price": 7350.0, "min_price": 7000.0, "max_price": 7650.0, "arrival_date": "06/09/2026"},
+    {"commodity": "Arhar (Tur/Red Gram)(Whole)", "market": "Latur", "district": "Latur", "modal_price": 7100.0, "min_price": 6750.0, "max_price": 7350.0, "arrival_date": "06/09/2026"},
+    {"commodity": "Wheat", "market": "Pune", "district": "Pune", "modal_price": 2550.0, "min_price": 2400.0, "max_price": 2680.0, "arrival_date": "06/09/2026"},
+    {"commodity": "Onion", "market": "Nashik", "district": "Nashik", "modal_price": 1950.0, "min_price": 1700.0, "max_price": 2200.0, "arrival_date": "06/09/2026"},
+    {"commodity": "Sugarcane", "market": "Kolhapur", "district": "Kolhapur", "modal_price": 3280.0, "min_price": 3100.0, "max_price": 3400.0, "arrival_date": "06/09/2026"},
+    {"commodity": "Turmeric", "market": "Sangli", "district": "Sangli", "modal_price": 13800.0, "min_price": 13100.0, "max_price": 14400.0, "arrival_date": "06/09/2026"},
+    {"commodity": "Groundnut", "market": "Solapur", "district": "Solapur", "modal_price": 6300.0, "min_price": 5950.0, "max_price": 6550.0, "arrival_date": "06/09/2026"},
+    {"commodity": "Bajra(Pearl Millet/Cumbu)", "market": "Nashik", "district": "Nashik", "modal_price": 2420.0, "min_price": 2300.0, "max_price": 2540.0, "arrival_date": "06/09/2026"},
+    {"commodity": "Grapes", "market": "Nashik", "district": "Nashik", "modal_price": 6100.0, "min_price": 5700.0, "max_price": 6500.0, "arrival_date": "06/09/2026"}
+  ]
+}

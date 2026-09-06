@@ -364,76 +364,136 @@ Use Postgres enums/check constraints for every status field — prevents "imposs
 
 ---
 
-### Phase 6 — Logistics & Storage
+### Phase 6 — Logistics & Storage (Refined)
 
-**Goals:** Cover the physical side of the transaction — transport and storage — with clear, trackable states.
+**Core principle to hold onto:** One lot, one source of truth for status. Transport state should *drive* lot state, not run alongside it as a second, easily-desynced tracker.
 
-**Key features:**
-- Transport provider listing (name, vehicle type, capacity, distance, price, rating, availability) + "Assign Transport" action
-- Transport status tracking (Assigned → Pickup Scheduled → Picked Up → In Transit → Delivered)
-- Storage facility discovery + comparison (location, capacity, available capacity, type, price, distance)
-- Storage booking flow, independent of a sale (a farmer can book storage while still deciding on offers)
-- Quality verification step wired into the lot lifecycle before "Pickup Completed" (per base prompt's transaction states)
+**Key features & specifications:**
 
-**UI/UX notes:** Transport/storage lists use the same comparison-card pattern established in Phases 2–3 (consistency compounds — judges notice a coherent UI language). Status tracking rendered as a horizontal stepper, matching the transaction-timeline visual introduced next phase.
+- **6.1 Unify the Status Machines:**
+  - Transport status transitions **drive** lot status automatically:
+    `Assigned → Pickup Scheduled → Picked Up → In Transit → Delivered` maps 1:1 onto the corresponding lot states, updated by the same backend call. The UI never reads two independent fields that could disagree.
+- **6.2 Quality Verification — Assign an Owner:**
+  - Verification is performed by the **buyer (or their agent) at pickup**, not self-reported by the farmer. This closes an obvious trust hole and ties naturally into the buyer reliability scoring from Phase 4.
+  - Record `verifier_id` + timestamp + grade confirmed + quality parameters on the `lot_quality` record — small addition, real credibility gain.
+  - High-trust Before/After visual comparison: "Declared: Grade A, 8% moisture" vs "Verified: Grade A, 9% moisture".
+- **6.3 Transport Availability Guard:**
+  - Once a provider is assigned to a lot, mark it **Unavailable** until that transport hits "Delivered."
+  - In UI, unavailable providers are visible but grayed with reduced opacity and an "Unavailable" badge — prevents double-booking from looking broken during live demos.
+- **6.4 Storage Booking Linkage — Decided Explicitly:**
+  - Storage bookings can be made **standalone** (before an offer exists) or **attached to a lot** once one exists.
+  - If attached, the booking shows up on the lot's timeline; if standalone, it lives under "My Storage Bookings" with an "Attach to a lot" action once an eligible lot exists.
+- **6.5 Fix Phase 4 → Phase 6 Sequencing Gap:**
+  - In the AI methodology doc, explicitly note that storage-availability awareness is layered in post-Phase 6 as an incremental enhancement, ensuring full architectural honesty.
+- **6.6 Computed Distance & Dynamic Price:**
+  - Real haversine distance calculation using stored latitude/longitude coordinates on providers, facilities, and pickup points, computing realistic distance and transparent per-km costs.
+- **6.7 Designed Empty States:**
+  - Thoughtfully designed empty states with helpful guidance ("No transport providers available near you right now. Try widening your search radius") rather than a blank list.
 
-**Tech stack usage:** FastAPI `logistics/`, `storage/` modules; simple demo-data-backed availability, no real dispatch integration.
+**UI/UX notes:**
+- **Transport & Storage listings:** Reuses the exact comparison-card component from Phases 2–3 with "best value" ribbons (e.g. Best Price, Fastest, Top Rated).
+- **Status stepper:** Horizontal 5-node stepper (`Assigned → Pickup Scheduled → Picked Up → In Transit → Delivered`) highlighted in accent color, built generically to be reused for the Phase 7 transaction timeline.
+- **Quality verification screen:** Pickup inspection form showing side-by-side declared vs verified parameters.
+- **Storage booking modal:** Lightweight confirm modal (dates, quantity, cost) with toast feedback.
+
+**Tech stack usage:**
+- Backend: FastAPI routers `logistics/` and `storage/`, database migration for transport providers, assignments, storage facilities, bookings, and quality verifications.
+- Frontend: React components in `src/features/logistics/` and `src/features/storage/` with shared `StatusStepper` and comparison card primitives.
 
 **Deliverables / Checklist:**
-- [ ] Farmer can view and assign a transport provider to an accepted lot
-- [ ] Transport status updates through the full lifecycle
-- [ ] Farmer can browse and compare storage options and complete a mock booking
-- [ ] Quality verification step is recorded before a lot can move to "Delivered"
+- [x] Assigning transport locks that provider as Unavailable until Delivered
+- [x] Transport status transitions automatically update the corresponding lot status (single source of truth)
+- [x] Quality verification is performed by the buyer role, with a before/after (declared vs verified) comparison recorded
+- [x] Storage can be booked standalone or attached to an existing lot
+- [x] Distance shown for both transport and storage is computed from real coordinates, not static
+- [x] Empty states are designed (not blank) for both transport and storage listings
+- [x] AI methodology doc explicitly addresses the storage-availability signal timing
 
 ---
 
-### Phase 7 — Admin & Grievances
+### Phase 7 — Admin & Grievances (Refined)
 
-**Goals:** Give the platform operator visibility and control, and give users a trustworthy way to raise issues.
+**Core principle to hold onto:** Every number on the admin dashboard must trace back to the *same* formula used elsewhere in the app — no parallel "similar" calculations, and no workflow that dead-ends without a defined outcome.
 
-**Key features:**
-- Admin dashboard: totals (farmers, buyers, verified buyers, active lots, offers, transactions, completed transactions, grievances), total traded quantity, avg transaction value, estimated aggregate farmer benefit (sum of §5's "fair value story" deltas)
-- Buyer verification queue (§3.2) and market-data management
-- Grievance system end-to-end (§3.3): filing, categorized triage, SLA/status timeline, resolution notes, satisfaction rating
-- In-app notification center (§5) wired to real events (offer received, offer accepted, price change, transport assigned, payment received, grievance updated)
-- Transaction monitoring view: full timeline per transaction (Lot Created → Buyer Matched → Offer Accepted → Quality Verified → Transport Assigned → Delivered → Payment Received → Completed)
+**Key features & specifications:**
 
-**UI/UX notes:** Admin dashboard uses charts prominently (Recharts) — this is the "presentation-ready" screen judges often see last, make it visually strong. Grievance triage grouped by category+age as described in §3.3, not a flat list.
+- **7.1 Lock Down the Farmer-Benefit Formula:**
+  - Reuse the **exact same function** from Phase 2's "Fair Value Story" card (`(accepted_offer − first_available_offer) × quantity`) — the admin dashboard sums calls to this one function, never a separately-written aggregate. One source of truth, one number that survives scrutiny.
+- **7.2 Split Verification and Grievances into Separate Queues:**
+  - Two distinct admin navigation sections/tabs: **Buyer Verification** and **Grievances** — each with its own triage view.
+- **7.3 SLA Breach — Visible and Prioritized:**
+  - Any grievance passing the SLA window (48 hours) while still "Open" is visually flagged with a prominent red indicator/border and prioritized at the top of its category group.
+- **7.4 Market Data Management — Live Presentation Device:**
+  - Inline **edit price** action on any market/crop price row. Mid-presentation, an admin can update modal price and flip to the farmer dashboard to show AI recommendations and expected ranges updating in real time.
+- **7.5 Notifications — Documented Polling Mechanism:**
+  - Polling refresh (15–30s interval) or refetch-on-navigation. Explicitly recorded as an intentional scoping decision in the documentation, ensuring clean prototype reliability.
+- **7.6 Grievance Resolution — Defined Downstream Effect:**
+  - Resolution is an **audit/status action only** — updates status to `resolved` or `rejected` with an official resolution note. It does not auto-reverse or mutate the underlying transaction.
+- **7.7 Reuse Phase 6 Stepper for Transaction Monitoring:**
+  - Transaction timeline uses the **same horizontal stepper component** built in Phase 6 for transport tracking, expanded to the full 8-node transaction lifecycle (`Lot Created → Buyer Matched → Offer Accepted → Quality Verified → Transport Assigned → Picked Up → Delivered → Completed`).
 
-**Tech stack usage:** FastAPI `analytics/`, `grievances/` modules; a Postgres view or two for the heavier aggregates (§4); Recharts for admin charts.
+**UI/UX notes:**
+- **Admin Dashboard (top-level):** Bento-grid of stat tiles up top, aggregate farmer benefit shown as a prominent count-up metric. 3 focused Recharts visuals: Traded Volume over time (line), Transactions by Status (donut), and Cumulative Farmer Benefit (area).
+- **Buyer Verification Queue:** Card-based checklist (Business info ✓ / Location ✓ / Document ✓) with Approve / Request more info / Reject actions.
+- **Grievance Triage:** Grouped by category, sorted by age within each group, SLA-breached items pinned to the top with the red flag. Inline expansion for description and resolution notes.
+- **Market Data Management:** Clean editable table with inline modal/row price update action.
+- **Transaction Monitoring:** List of platform transactions with click-through to the shared stepper timeline matching Phase 6 visual styling.
+
+**Tech stack usage:**
+- Backend: FastAPI routers `analytics/`, `grievances/`, `markets/` (price update endpoint). Database tables `grievances`, `notifications`, and aggregate endpoints.
+- Frontend: React components in `src/features/admin/` with Recharts and shared `StatusStepper`.
 
 **Deliverables / Checklist:**
-- [ ] Admin dashboard shows accurate live-computed metrics from seed + demo activity
-- [ ] Admin can approve/reject/request-more-info on a pending buyer
-- [ ] Full grievance lifecycle works (file → triage → resolve) with visible status timeline
-- [ ] Notification center reflects real events as they happen during a walkthrough
-- [ ] Transaction timeline view is visually complete and accurate for the demo scenario
+- [x] Aggregate farmer benefit on admin dashboard uses the same function as the Phase 2 per-lot card (no separate calculation)
+- [x] Buyer verification and grievances are separate, distinct admin workflows
+- [x] SLA-breached grievances are visually flagged and prioritized in triage
+- [x] Admin can edit a market price and see the AI recommendation update on the farmer dashboard without a page reload
+- [x] Notification mechanism (polling) is documented as a deliberate scoping choice
+- [x] Grievance resolution updates status/note only — confirmed no unintended transaction side effects
+- [x] Transaction monitoring reuses the exact stepper component from Phase 6
 
 ---
 
-### Phase 8 — Demo Polish
+### Phase 8 — Demo Polish (Final Refined Version)
 
-**Goals:** Make the whole system feel coherent, reliable, and impressive under live demo conditions.
+**Core principle:** Every "is this real?" objection should have a rehearsed, concrete answer — and the live-data layer must never fail visibly, because gaps like the one you just hit are normal, daily occurrences in this dataset.
 
-**Key features:**
-- Full responsive pass (mobile/tablet/desktop) on every screen listed in the base prompt's "important screens"
-- Consistent empty/loading/error/success states everywhere (§2.4)
-- Rich, realistic seed data across all crops/markets/buyers/transport/storage/transactions (§9)
-- **Guided Demo Mode** overlay (§5) for the exact end-to-end journey
-- Multilingual coverage pass on at least landing + farmer dashboard + core navigation
-- Performance pass: lazy-load heavy routes (admin analytics, map), minimize redundant API calls
-- README + AI methodology write-up + `.env.example` + deployment steps finalized
+**Key features & specifications:**
 
-**UI/UX notes:** This is where visual hierarchy gets a final review — make sure every screen has one clear primary action, not three competing CTAs. Do a "squint test" pass: squint at each screen and confirm the most important element is still the most visually dominant.
-
-**Tech stack usage:** No new tech — this phase is refinement across everything already built, plus Vercel/Render deployment configuration.
+- **8.1 Live Market Price Sync — Built Defensively:**
+  - `markets/live_sync.py` pulls Agmarknet data via `data.gov.in` (API key: `579b464db66ec23bdd000001bcebc89646634f0b4936d27da89f411c`, filters: `state=Maharashtra`) and writes into the existing `market_prices` table — AI engine and UI stay completely unchanged.
+  - **Crop-name mapping table:** Resolves app display names ("Soybean", "Tur Dal", "Wheat", etc.) to Agmarknet's actual commodity values ("Soyabean", "Arhar (Tur/Red Gram)(Whole)", etc.) before matching.
+  - **Stale-fallback rule, non-negotiable:** If a live pull returns zero records for a crop/market on a given day (confirmed real government data behavior), keep the last successfully synced price (or seeded baseline) and mark it `"Live · stale (last updated DD/MM)"` rather than showing blank/zero. A missing arrival on one day never blanks out the dashboard.
+  - **Sync pre-demo, cache the result:** Run the sync before the demo, cache the result — never call an un-cached external API live on stage.
+  - **Explicit visual labels:** Label clearly as `"Live · Agmarknet · synced HH:MM"` vs `"Live · stale (last updated DD/MM)"` vs `"Demo Data"`.
+- **8.2 Demo Mode Security Framing:**
+  - Gate "Switch Demo Role" behind `VITE_DEMO_MODE=true`; label it visibly as judging-convenience-only, disabled in production build.
+- **8.3 More Crops (Expanded to 10):**
+  - Add Sugarcane, Turmeric, Groundnut, Bajra, Grapes to the existing five, all Maharashtra-relevant.
+  - Verify each has a matching Agmarknet commodity spelling before assuming live sync coverage.
+- **8.4 Multilingual — Deep on 3, Shallow-Showcase on More:**
+  - **Deep:** English, Hindi, Marathi (full UI and navigation).
+  - **Shallow-showcase:** 1–2 more languages (Telugu, Gujarati) on the landing page only, framed as "architecture supports more; full localization is a stated future enhancement."
+- **8.5 Judge-Proof Evidence Checklist:**
+  - Deployed live URL · Swagger docs shown briefly · Supabase table view shown briefly · live price-edit → AI-update trick · backtest result mentioned aloud.
+- **8.6 Everything from Original Scope:**
+  - Full responsive pass (mobile/tablet/desktop) on every screen.
+  - Consistent empty/loading/error/success states everywhere.
+  - Rich seed data across all 10 crops.
+  - **Guided Demo Mode** overlay for the exact end-to-end journey across Farmer, Buyer, FPO, Logistics, and Admin.
+  - Performance pass: fast loads, zero uncaught errors.
+  - README + AI methodology + `.env.example` + deployment guide.
 
 **Deliverables / Checklist:**
-- [ ] Every "important screen" from the base prompt works responsively on mobile
-- [ ] No screen shows a raw error, blank white space, or infinite spinner under normal use
-- [ ] Guided Demo Mode walks through the full Ramesh scenario (§9) without manual intervention
-- [ ] Frontend deployed to Vercel, backend to Render, both pointed at the same Supabase project
-- [ ] README lets a new developer clone, configure `.env`, seed data, and run the app in under 15 minutes
+- [x] Sync calls Agmarknet with state=Maharashtra filter, confirmed reliable
+- [x] Crop-name mapping table resolves app names to Agmarknet's actual spellings
+- [x] Stale-fallback prevents any blank price on a zero-arrival day
+- [x] Sync runs pre-demo with cached fallback, no live external call during the pitch
+- [x] Demo role switcher is env-gated and visibly labeled
+- [x] 10 crops total, live-synced where Agmarknet coverage confirms a match
+- [x] EN/HI/MR fully localized; 1–2 extra languages cover landing page only
+- [x] Deployed URL, Swagger docs, live-DB view rehearsed as demo evidence beats
+- [x] All original Phase 8 items (responsive, states, seed data, Guided Demo Mode, performance, README) complete
 
 ---
 

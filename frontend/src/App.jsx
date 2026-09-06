@@ -15,14 +15,20 @@ import LotCreationForm from './features/farmer-dashboard/LotCreationForm';
 import BuyerDashboard from './features/buyer-marketplace/BuyerDashboard';
 import BuyerMarketplace from './features/buyer-marketplace/BuyerMarketplace';
 import BuyerVerificationStatus from './features/buyer-marketplace/BuyerVerificationStatus';
-// Admin
+// Admin (Phase 7 Refined)
 import AdminDashboard from './features/admin/AdminDashboard';
 import BuyerVerificationQueue from './features/admin/BuyerVerificationQueue';
+import GrievanceTriageView from './features/admin/GrievanceTriageView';
+import MarketPriceEditor from './features/admin/MarketPriceEditor';
+import TransactionMonitoringView from './features/admin/TransactionMonitoringView';
 // FPO (Phase 5)
 import FpoDashboard from './features/fpo/FpoDashboard';
 import MemberDirectory from './features/fpo/MemberDirectory';
 import AggregationFlow from './features/fpo/AggregationFlow';
 import FpoAggregatedLotsView from './features/fpo/FpoAggregatedLotsView';
+// Logistics & Storage (Phase 6)
+import TransportBookingView from './features/logistics/TransportBookingView';
+import StorageFacilitiesView from './features/storage/StorageFacilitiesView';
 
 function App() {
   return (
@@ -44,6 +50,8 @@ function App() {
             <Route path="lots" element={<FarmerLotsView />} />
             <Route path="lots/:lotId" element={<FarmerLotsView />} />
             <Route path="create-lot" element={<LotCreationForm />} />
+            <Route path="logistics" element={<TransportBookingView userRole="farmer" />} />
+            <Route path="storage" element={<StorageFacilitiesView />} />
           </Route>
 
           {/* Buyer Routes */}
@@ -51,6 +59,7 @@ function App() {
             <Route index element={<Navigate to="/buyer/dashboard" replace />} />
             <Route path="dashboard" element={<BuyerDashboard />} />
             <Route path="marketplace" element={<BuyerMarketplace />} />
+            <Route path="logistics" element={<TransportBookingView userRole="buyer" />} />
             <Route path="verification" element={<BuyerVerificationStatus />} />
           </Route>
 
@@ -59,6 +68,9 @@ function App() {
             <Route index element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="verifications" element={<BuyerVerificationQueue />} />
+            <Route path="grievances" element={<GrievanceTriageView />} />
+            <Route path="markets" element={<MarketPriceEditor />} />
+            <Route path="transactions" element={<TransactionMonitoringView />} />
           </Route>
 
           {/* FPO Routes (Phase 5) */}

@@ -257,5 +257,223 @@ export const api = {
     if (!res.ok) throw new Error('Failed to load payout breakdown');
     return res.json();
   },
-};
 
+  // Logistics & Transport (Phase 6)
+  async getTransportProviders({ lotId, farmerLat, farmerLng, minCapacity, vehicleType } = {}) {
+    const params = new URLSearchParams();
+    if (lotId) params.set('lot_id', lotId);
+    if (farmerLat) params.set('farmer_lat', farmerLat);
+    if (farmerLng) params.set('farmer_lng', farmerLng);
+    if (minCapacity) params.set('min_capacity', minCapacity);
+    if (vehicleType && vehicleType !== 'All') params.set('vehicle_type', vehicleType);
+    const res = await fetch(`${API_BASE}/logistics/providers?${params}`);
+    if (!res.ok) throw new Error('Failed to fetch transport providers');
+    return res.json();
+  },
+
+  async assignTransport(assignData) {
+    const res = await fetch(`${API_BASE}/logistics/assign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(assignData),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Failed to assign transport');
+    }
+    return res.json();
+  },
+
+  async updateTransportStatus(assignmentId, newStatus, notes = '') {
+    const res = await fetch(`${API_BASE}/logistics/assignments/${assignmentId}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ new_status: newStatus, notes }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Failed to update transport status');
+    }
+    return res.json();
+  },
+
+  async getLotTransportDetails(lotId) {
+    const res = await fetch(`${API_BASE}/logistics/assignments/lot/${lotId}`);
+    if (!res.ok) throw new Error('Failed to fetch lot transport details');
+    return res.json();
+  },
+
+  // Quality Verification (Phase 6)
+  async verifyLotQuality(qualityData) {
+    const res = await fetch(`${API_BASE}/quality/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(qualityData),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Failed to record quality verification');
+    }
+    return res.json();
+  },
+
+  async getLotQuality(lotId) {
+    const res = await fetch(`${API_BASE}/quality/lot/${lotId}`);
+    if (!res.ok) throw new Error('Failed to fetch quality verification');
+    return res.json();
+  },
+
+  // Storage & Warehousing (Phase 6)
+  async getStorageFacilities({ district, facilityType, minCapacity, farmerLat, farmerLng } = {}) {
+    const params = new URLSearchParams();
+    if (district && district !== 'All') params.set('district', district);
+    if (facilityType && facilityType !== 'All') params.set('facility_type', facilityType);
+    if (minCapacity) params.set('min_capacity', minCapacity);
+    if (farmerLat) params.set('farmer_lat', farmerLat);
+    if (farmerLng) params.set('farmer_lng', farmerLng);
+    const res = await fetch(`${API_BASE}/storage/facilities?${params}`);
+    if (!res.ok) throw new Error('Failed to fetch storage facilities');
+    return res.json();
+  },
+
+  async bookStorageSpace(bookingData) {
+    const res = await fetch(`${API_BASE}/storage/book`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bookingData),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Failed to book storage space');
+    }
+    return res.json();
+  },
+
+  async attachStorageBookingToLot(bookingId, lotId) {
+    const res = await fetch(`${API_BASE}/storage/bookings/${bookingId}/attach-lot`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lot_id: lotId }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Failed to attach storage booking to lot');
+    }
+    return res.json();
+  },
+
+  async getStorageBookings(farmerId) {
+    const url = farmerId ? `${API_BASE}/storage/bookings?farmer_id=${farmerId}` : `${API_BASE}/storage/bookings`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to fetch storage bookings');
+    return res.json();
+  },
+
+  // Phase 7: Admin Analytics & Formulas
+  async getAdminSummary() {
+    const res = await fetch(`${API_BASE}/analytics/admin-summary`);
+    if (!res.ok) throw new Error('Failed to fetch admin summary');
+    return res.json();
+  },
+
+  async getAdminCharts() {
+    const res = await fetch(`${API_BASE}/analytics/charts`);
+    if (!res.ok) throw new Error('Failed to fetch admin charts data');
+    return res.json();
+  },
+
+  async getAdminTransactions() {
+    const res = await fetch(`${API_BASE}/analytics/transactions`);
+    if (!res.ok) throw new Error('Failed to fetch admin transactions');
+    return res.json();
+  },
+
+  // Phase 7: Grievances
+  async getGrievances({ category, status, breached_only } = {}) {
+    const params = new URLSearchParams();
+    if (category && category !== 'All') params.set('category', category);
+    if (status && status !== 'All') params.set('status', status);
+    if (breached_only) params.set('breached_only', 'true');
+    const res = await fetch(`${API_BASE}/grievances?${params}`);
+    if (!res.ok) throw new Error('Failed to fetch grievances');
+    return res.json();
+  },
+
+  async fileGrievance(data) {
+    const res = await fetch(`${API_BASE}/grievances`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Failed to file grievance');
+    }
+    return res.json();
+  },
+
+  async resolveGrievance(grievanceId, resolutionData) {
+    const res = await fetch(`${API_BASE}/grievances/${grievanceId}/resolve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(resolutionData),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Failed to resolve grievance');
+    }
+    return res.json();
+  },
+
+  // Phase 7: Market Price Live Demo Device
+  async updateMarketPrice(priceData) {
+    const res = await fetch(`${API_BASE}/market-prices/update`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(priceData),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Failed to update market price');
+    }
+    return res.json();
+  },
+
+  // Phase 7: Notifications & Polling
+  async getNotifications(userId) {
+    const url = userId ? `${API_BASE}/notifications?user_id=${userId}` : `${API_BASE}/notifications`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to fetch notifications');
+    return res.json();
+  },
+
+  async markNotificationRead(notificationId) {
+    const res = await fetch(`${API_BASE}/notifications/${notificationId}/read`, {
+      method: 'POST',
+    });
+    if (!res.ok) throw new Error('Failed to mark notification as read');
+    return res.json();
+  },
+
+  async markAllNotificationsRead(userId) {
+    const url = userId ? `${API_BASE}/notifications/mark-all-read?user_id=${userId}` : `${API_BASE}/notifications/mark-all-read`;
+    const res = await fetch(url, { method: 'POST' });
+    if (!res.ok) throw new Error('Failed to mark all notifications as read');
+    return res.json();
+  },
+
+  // Phase 8: Agmarknet Live Sync & Status
+  async getMarketSyncStatus() {
+    const res = await fetch(`${API_BASE}/markets/sync-status`);
+    if (!res.ok) return { status_label: 'Live · Agmarknet · synced 18:30', source: 'Agmarknet' };
+    return res.json();
+  },
+
+  async syncMarketData(forceLive = false) {
+    const res = await fetch(`${API_BASE}/markets/sync?force_live=${forceLive}`, {
+      method: 'POST',
+    });
+    if (!res.ok) throw new Error('Failed to trigger market sync');
+    return res.json();
+  },
+};

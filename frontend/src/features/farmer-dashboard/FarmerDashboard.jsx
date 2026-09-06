@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../services/api';
 import { TrendingUp, Package, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import PriceRecommendationCard from './PriceRecommendationCard';
 
 export default function FarmerDashboard() {
+  const { t } = useTranslation();
   const [dashboardData, setDashboardData] = useState({
     crops: [],
     markets: [],
@@ -45,11 +47,11 @@ export default function FarmerDashboard() {
     <div className="space-y-6 max-w-6xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-heading font-bold text-foreground">Overview</h1>
-          <p className="text-muted-foreground">Welcome back! Here's what's happening with your crops today.</p>
+          <h1 className="text-3xl font-heading font-bold text-foreground">{t('farmer.welcome')}</h1>
+          <p className="text-muted-foreground">{t('farmer.location')} • {t('common.liveData')}</p>
         </div>
         <Link to="/farmer/create-lot" className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium hover:bg-primary/90 transition-colors shadow-sm inline-flex items-center gap-2">
-          <span className="text-lg">➕</span> New Lot
+          <span className="text-lg">➕</span> {t('farmer.createLotCta')}
         </Link>
       </div>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import BuyerBadge from '../../components/ui/BuyerBadge';
 import BuyerMatchCard from './BuyerMatchCard';
@@ -88,6 +88,7 @@ function RejectModal({ offerId, onClose, onConfirm }) {
 
 export default function FarmerLotsView() {
   const { lotId } = useParams();
+  const navigate = useNavigate();
   const [lots, setLots] = useState([]);
   const [offersMap, setOffersMap] = useState({});
   const [loading, setLoading] = useState(true);
@@ -269,14 +270,22 @@ export default function FarmerLotsView() {
                   <div className="border-t border-border">
                     {/* Accepted Offer Banner */}
                     {acceptedOffer && (
-                      <div className="bg-purple-50 border-b border-purple-200 p-4 flex items-center gap-3">
-                        <Check className="w-5 h-5 text-purple-700 shrink-0" />
-                        <div>
-                          <span className="font-semibold text-purple-900">Offer Accepted from {acceptedOffer.buyers?.business_name}!</span>
-                          <p className="text-xs text-purple-700 mt-0.5">
-                            ₹{acceptedOffer.price_per_quintal}/quintal • {acceptedOffer.payment_terms} • {acceptedOffer.pickup_terms}
-                          </p>
+                      <div className="bg-purple-50 border-b border-purple-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <Check className="w-5 h-5 text-purple-700 shrink-0" />
+                          <div>
+                            <span className="font-semibold text-purple-900">Offer Accepted from {acceptedOffer.buyers?.business_name}!</span>
+                            <p className="text-xs text-purple-700 mt-0.5">
+                              ₹{acceptedOffer.price_per_quintal}/quintal • {acceptedOffer.payment_terms} • {acceptedOffer.pickup_terms}
+                            </p>
+                          </div>
                         </div>
+                        <button
+                          onClick={() => navigate(`/farmer/logistics?lotId=${lot.id}`)}
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold px-3.5 py-2 rounded-xl transition-colors shadow-xs flex items-center justify-center gap-1.5 shrink-0"
+                        >
+                          🚚 Book / Track Transport
+                        </button>
                       </div>
                     )}
 

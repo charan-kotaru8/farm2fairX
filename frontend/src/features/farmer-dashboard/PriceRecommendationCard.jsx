@@ -39,14 +39,19 @@ export default function PriceRecommendationCard({ cropId, marketId, cropName, ma
   const [rec, setRec] = useState(null);
   const [loading, setLoading] = useState(true);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [syncStatus, setSyncStatus] = useState(null);
 
   useEffect(() => {
     async function loadRec() {
       if (!cropId || !marketId) return;
       setLoading(true);
       try {
-        const data = await api.getPriceRecommendation({ cropId, marketId });
+        const [data, statusData] = await Promise.all([
+          api.getPriceRecommendation({ cropId, marketId }),
+          api.getMarketSyncStatus(),
+        ]);
         setRec(data);
+        setSyncStatus(statusData);
       } catch (err) {
         console.error('Failed to load AI recommendation:', err);
       } finally {
@@ -101,8 +106,17 @@ export default function PriceRecommendationCard({ cropId, marketId, cropName, ma
               <span className="text-2xl">🤖</span>
             </div>
             <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-2">
-                AI Price Insight
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                  AI Price Insight
+                </span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                  syncStatus?.is_stale_fallback 
+                    ? 'bg-amber-50 text-amber-800 border-amber-300'
+                    : 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                }`}>
+                  {syncStatus?.status_label || 'Live · Agmarknet · synced 18:30'}
+                </span>
               </div>
 
               {/* Big verdict badge */}
