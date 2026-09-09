@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../services/api';
 import { CheckCircle2, ChevronRight, ArrowLeft } from 'lucide-react';
-
-const STEPS = [
-  { id: 1, name: 'Crop Selection' },
-  { id: 2, name: 'Quantity & Quality' },
-  { id: 3, name: 'Availability' },
-  { id: 4, name: 'Review' }
-];
+import { useAuth } from '../../context/AuthContext';
 
 export default function LotCreationForm() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
+
+  const STEPS = [
+    { id: 1, name: t('createLot.stepCrop') },
+    { id: 2, name: t('createLot.stepQuantity') },
+    { id: 3, name: t('createLot.stepAvailability') },
+    { id: 4, name: t('createLot.stepReview') }
+  ];
   const [crops, setCrops] = useState([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -34,16 +38,25 @@ export default function LotCreationForm() {
   const handlePrev = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
   const handleSubmit = async () => {
+    if (!user?.id) {
+      alert('You must be logged in to create a lot.');
+      return;
+    }
     setLoading(true);
     try {
-      await api.createLot({
+      const result = await api.createLot({
         ...formData,
-        quantity: parseFloat(formData.quantity)
+        quantity: parseFloat(formData.quantity),
+        farmer_id: user.id,
       });
-      navigate('/farmer/dashboard');
+      if (result?.id) {
+        navigate('/farmer/lots');
+      } else {
+        throw new Error(result?.detail || 'Creation failed');
+      }
     } catch (error) {
       console.error("Failed to create lot:", error);
-      alert("Failed to create lot. Please try again.");
+      alert(`Failed to create lot: ${error.message || 'Please try again.'}`);
     } finally {
       setLoading(false);
     }
@@ -58,8 +71,8 @@ export default function LotCreationForm() {
           <ArrowLeft className="w-5 h-5 text-muted-foreground" />
         </button>
         <div>
-          <h1 className="text-3xl font-heading font-bold text-foreground">Create New Lot</h1>
-          <p className="text-muted-foreground">List your crop on the market in 4 easy steps.</p>
+          <h1 className="text-3xl font-heading font-bold text-foreground">{t('createLot.pageTitle')}</h1>
+          <p className="text-muted-foreground">{t('createLot.pageSubtitle')}</p>
         </div>
       </div>
 
@@ -87,7 +100,7 @@ export default function LotCreationForm() {
         <div className="flex-1">
           {currentStep === 1 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-              <h2 className="text-xl font-semibold mb-4">What are you listing?</h2>
+              <h2 className="text-xl font-semibold mb-4">{t('createLot.whatAreYouListing')}</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {crops.map(crop => (
                   <button
@@ -227,7 +240,7 @@ export default function LotCreationForm() {
             disabled={currentStep === 1}
             className={`px-6 py-2 rounded-md font-medium transition-colors ${currentStep === 1 ? 'opacity-0 pointer-events-none' : 'text-foreground hover:bg-muted border border-border'}`}
           >
-            Back
+            {t('createLot.back')}
           </button>
           
           {currentStep < STEPS.length ? (
@@ -236,7 +249,7 @@ export default function LotCreationForm() {
               disabled={currentStep === 1 && !formData.crop_id}
               className="px-6 py-2 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Continue <ChevronRight className="w-4 h-4" />
+              {t('createLot.next')} <ChevronRight className="w-4 h-4" />
             </button>
           ) : (
             <button 
@@ -244,7 +257,7 @@ export default function LotCreationForm() {
               disabled={loading}
               className="px-8 py-2.5 rounded-md font-medium bg-green-600 text-white hover:bg-green-700 transition-colors shadow-md flex items-center gap-2 disabled:opacity-70"
             >
-              {loading ? 'Submitting...' : 'Confirm & List Lot'}
+              {loading ? t('common.loading') : t('createLot.submit')}
             </button>
           )}
         </div>

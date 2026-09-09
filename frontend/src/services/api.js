@@ -57,7 +57,33 @@ export const api = {
     return res.json();
   },
 
-  // Buyers & Tier Verification
+  // User Profiles
+  async getProfile(userId) {
+    const res = await fetch(`${API_BASE}/profiles/${userId}`);
+    if (!res.ok) return null;
+    return res.json();
+  },
+
+  async updateProfile(userId, profileData) {
+    const res = await fetch(`${API_BASE}/profiles/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profileData),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Failed to update profile');
+    }
+    return res.json();
+  },
+
+  async getMaharashtraDistricts() {
+    const res = await fetch(`${API_BASE}/profiles/districts/maharashtra`);
+    if (!res.ok) return { districts: [] };
+    return res.json();
+  },
+
+
   async getBuyers({ status, tier, district } = {}) {
     const params = new URLSearchParams();
     if (status) params.set('status', status);
@@ -177,11 +203,24 @@ export const api = {
     return res.json();
   },
 
+  async getFarmerRecommendations(farmerId) {
+    const res = await fetch(`${API_BASE}/ai/farmer-recommendations?farmer_id=${farmerId}`);
+    if (!res.ok) return { recommendations: [], sync_status: null };
+    return res.json();
+  },
+
   async getBuyerMatches(lotId) {
     const res = await fetch(`${API_BASE}/ai/buyer-match?lot_id=${lotId}`);
     if (!res.ok) return null;
     return res.json();
   },
+
+  async getCurrentWeather(marketName = 'Latur APMC') {
+    const res = await fetch(`${API_BASE}/weather/current?market_name=${encodeURIComponent(marketName)}`);
+    if (!res.ok) return null;
+    return res.json();
+  },
+
 
   // FPO Aggregation
   async getFpoDashboardStats(fpoId) {
@@ -440,12 +479,17 @@ export const api = {
   },
 
   // Phase 7: Notifications & Polling
-  async getNotifications(userId) {
-    const url = userId ? `${API_BASE}/notifications?user_id=${userId}` : `${API_BASE}/notifications`;
+  async getNotifications(userId, role) {
+    const params = new URLSearchParams();
+    if (userId) params.set('user_id', userId);
+    if (role) params.set('role', role);
+    const qs = params.toString();
+    const url = qs ? `${API_BASE}/notifications?${qs}` : `${API_BASE}/notifications`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to fetch notifications');
     return res.json();
   },
+
 
   async markNotificationRead(notificationId) {
     const res = await fetch(`${API_BASE}/notifications/${notificationId}/read`, {

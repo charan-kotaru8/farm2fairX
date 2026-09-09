@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../services/api';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import BuyerBadge from '../../components/ui/BuyerBadge';
 import BuyerMatchCard from './BuyerMatchCard';
+import RealTimeWeatherCard from './RealTimeWeatherCard';
 import { Check, X, Package, Star, Zap, TrendingUp, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const OFFER_RIBBONS = [
   { key: 'best_price', label: 'Best Price', color: 'bg-amber-500 text-white', icon: TrendingUp },
@@ -51,6 +55,7 @@ function computeRibbons(offers) {
 }
 
 function RejectModal({ offerId, onClose, onConfirm }) {
+  const { t } = useTranslation();
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -64,21 +69,21 @@ function RejectModal({ offerId, onClose, onConfirm }) {
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl border border-border max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
-        <h3 className="text-lg font-bold text-foreground mb-1">Decline this offer?</h3>
-        <p className="text-sm text-muted-foreground mb-4">The buyer will be notified with a polite message. You can optionally share your reason.</p>
+        <h3 className="text-lg font-bold text-foreground mb-1">{t('lots.declineModalTitle')}</h3>
+        <p className="text-sm text-muted-foreground mb-4">{t('lots.declineModalDesc')}</p>
         <textarea
           className="w-full border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary mb-4 resize-none"
           rows={3}
-          placeholder="Optional: Share reason (e.g. Price too low, prefer local buyer...)"
+          placeholder={t('lots.declineReasonPlaceholder')}
           value={reason}
           onChange={e => setReason(e.target.value)}
         />
         <div className="flex gap-3">
           <button onClick={onClose} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-medium py-2 px-4 rounded-lg transition-colors border border-slate-200">
-            Cancel
+            {t('lots.cancel')}
           </button>
           <button onClick={handleConfirm} disabled={loading} className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors shadow-sm disabled:opacity-60">
-            {loading ? 'Declining...' : 'Confirm Decline'}
+            {loading ? t('lots.declining') : t('lots.confirmDecline')}
           </button>
         </div>
       </div>
@@ -87,8 +92,11 @@ function RejectModal({ offerId, onClose, onConfirm }) {
 }
 
 export default function FarmerLotsView() {
+  const { t } = useTranslation();
   const { lotId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const farmerId = user?.id || null;
   const [lots, setLots] = useState([]);
   const [offersMap, setOffersMap] = useState({});
   const [loading, setLoading] = useState(true);
@@ -103,10 +111,11 @@ export default function FarmerLotsView() {
   };
 
   const loadData = async () => {
+    if (!farmerId) return;
     setLoading(true);
     try {
       const [lotsRes] = await Promise.all([
-        api.getLots('00000000-0000-0000-0000-000000000001')
+        api.getLots(farmerId)
       ]);
       setLots(lotsRes);
 
@@ -136,7 +145,7 @@ export default function FarmerLotsView() {
     }
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [farmerId]);
 
   useEffect(() => {
     if (lotId && !loading) {
@@ -197,16 +206,25 @@ export default function FarmerLotsView() {
       )}
 
       <div>
-        <h1 className="text-3xl font-heading font-bold text-foreground">My Lots</h1>
-        <p className="text-muted-foreground">Manage your active crop listings and review incoming buyer offers.</p>
+        <h1 className="text-3xl font-heading font-bold text-foreground">{t('lots.pageTitle')}</h1>
+        <p className="text-muted-foreground">{t('lots.pageSubtitle')}</p>
       </div>
+
+      {/* Real-Time APMC Weather & Delivery Conditions */}
+      <RealTimeWeatherCard marketName="Latur APMC" />
 
       {lots.length === 0 ? (
         <div className="bg-white rounded-2xl border border-border p-12 text-center">
-          <div className="text-5xl mb-4">📦</div>
-          <h3 className="text-lg font-semibold mb-1">No lots yet</h3>
-          <p className="text-sm text-muted-foreground mb-4">Create a lot to start receiving offers from verified buyers.</p>
-          <a href="/farmer/create-lot" className="text-sm font-medium text-primary hover:underline">Create your first lot →</a>
+          <div className="w-32 h-32 mx-auto -mb-2 flex items-center justify-center pointer-events-none">
+            <DotLottieReact
+              src="https://lottie.host/b3ee1784-ca13-4a98-9103-a46e988993fa/UoD2ajK4uk.json"
+              loop
+              autoplay
+            />
+          </div>
+          <h3 className="text-lg font-semibold mb-1">{t('farmer.noLotsYet')}</h3>
+          <p className="text-sm text-muted-foreground mb-4">{t('farmer.noLotsDesc')}</p>
+          <a href="/farmer/create-lot" className="text-sm font-medium text-primary hover:underline">{t('farmer.createLotLink')}</a>
         </div>
       ) : (
         <div className="space-y-4">
@@ -405,6 +423,13 @@ export default function FarmerLotsView() {
                         </div>
                       </div>
                     ) : null}
+
+                    {/* AI Buyer Matches — always available for real-time comparison */}
+                    {submittedOffers.length > 0 && !acceptedOffer && (
+                      <div className="border-t border-border p-5 bg-slate-50/50">
+                        <BuyerMatchCard lotId={lot.id} />
+                      </div>
+                    )}
 
                     {/* AI Buyer Matches — also shown beneath accepted offer for future reference */}
                     {acceptedOffer && (

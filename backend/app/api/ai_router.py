@@ -20,6 +20,7 @@ from app.ai.data_prep import (
 from app.ai.regression import predict_price_range, compute_confidence
 from app.ai.rule_engine import decide_action, generate_explanation, build_signal_chips
 from app.ai.buyer_matching import match_buyers_for_lot
+from app.services.weather_service import get_market_weather
 
 router = APIRouter()
 
@@ -72,8 +73,24 @@ def get_price_recommendation(
         decision["action"], trend_pct, arrival_trend_pct, demand_level
     )
 
-    # 7. Signal chips (max 3)
+    # 7. Signal chips (max 3) + Weather
     signals = build_signal_chips(trend_pct, arrival_trend_pct, demand_level)
+    weather_info = None
+    try:
+        sb = get_supabase_admin()
+        m_row = sb.table("markets").select("name").eq("id", market_id).execute().data
+        m_name = m_row[0]["name"] if m_row else "Latur APMC"
+        weather_info = get_market_weather(m_name)
+        if weather_info:
+            w_cond = weather_info.get("condition", "Clear / Favorable")
+            w_risk = weather_info.get("risk", "clear")
+            w_type = "negative" if w_risk == "warning" else ("positive" if w_risk == "clear" else "neutral")
+            signals.append({
+                "label": f"🌦️ {w_cond}",
+                "type": w_type,
+            })
+    except Exception:
+        pass
 
     # 8. Fetch backtest note if available
     sb = get_supabase_admin()

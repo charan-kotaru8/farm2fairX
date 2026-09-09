@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { api } from '../../services/api';
 import { Info } from 'lucide-react';
 import BuyerBadge from '../../components/ui/BuyerBadge';
@@ -87,10 +88,17 @@ export default function BuyerMatchCard({ lotId }) {
 
   if (loading) {
     return (
-      <div className="space-y-3">
-        {[1, 2].map(i => (
-          <div key={i} className="h-36 bg-white rounded-xl border border-border animate-pulse" />
-        ))}
+      <div className="p-8 bg-white rounded-xl border border-border flex flex-col items-center justify-center text-center shadow-2xs">
+        <div className="w-20 h-20 flex items-center justify-center">
+          <DotLottieReact
+            src="https://lottie.host/d0ced338-e3e1-4e86-9553-8fff0dea623e/e5iq7ZgcmA.json"
+            loop
+            autoplay
+          />
+        </div>
+        <p className="text-xs text-muted-foreground font-medium mt-2">
+          Matching verified buyers with weighted scoring model...
+        </p>
       </div>
     );
   }

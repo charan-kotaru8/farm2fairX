@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../services/api';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
@@ -15,6 +16,7 @@ L.Icon.Default.mergeOptions({
 });
 
 export default function MarketIntelligence() {
+  const { t } = useTranslation();
   const [data, setData] = useState({ crops: [], markets: [], comparison: [], trend: [], loading: true });
   const [filters, setFilters] = useState({
     cropId: '',
@@ -70,15 +72,15 @@ export default function MarketIntelligence() {
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-heading font-bold text-foreground">Market Intelligence</h1>
-          <p className="text-muted-foreground">Real-time prices and analytics across Maharashtra APMCs.</p>
+          <h1 className="text-3xl font-heading font-bold text-foreground">{t('marketIntel.pageTitle')}</h1>
+          <p className="text-muted-foreground">{t('marketIntel.pageSubtitle')}</p>
         </div>
       </div>
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-xl border border-border shadow-sm flex flex-wrap gap-4 items-end">
         <div className="flex-1 min-w-[200px]">
-          <label className="block text-sm font-medium text-muted-foreground mb-1">Crop</label>
+          <label className="block text-sm font-medium text-muted-foreground mb-1">{t('marketIntel.crop')}</label>
           <select 
             className="w-full rounded-md border-border focus:border-primary focus:ring-primary text-sm"
             value={filters.cropId}
@@ -88,13 +90,13 @@ export default function MarketIntelligence() {
           </select>
         </div>
         <div className="flex-1 min-w-[200px]">
-          <label className="block text-sm font-medium text-muted-foreground mb-1">Market (for Trend)</label>
+          <label className="block text-sm font-medium text-muted-foreground mb-1">{t('marketIntel.marketForTrend')}</label>
           <select 
             className="w-full rounded-md border-border focus:border-primary focus:ring-primary text-sm"
             value={filters.marketId}
             onChange={e => setFilters({...filters, marketId: e.target.value})}
           >
-            <option value="">All Markets (Avg)</option>
+            <option value="">{t('marketIntel.allMarkets')}</option>
             {data.markets.map(m => <option key={m.id} value={m.id}>{m.name}, {m.district}</option>)}
           </select>
         </div>

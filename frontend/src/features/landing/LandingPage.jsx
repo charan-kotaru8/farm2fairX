@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { useAuth } from '../../context/AuthContext';
 import LanguageSelector from '../../components/ui/LanguageSelector';
 import { 
@@ -15,7 +16,7 @@ export default function LandingPage() {
   const userRole = profile?.role || user?.user_metadata?.role || 'farmer';
   const dashboardPath = `/${userRole}/dashboard`;
 
-  const isShallowLang = ['te', 'gu'].includes(i18n.language);
+  const isShallowLang = ['gu'].includes(i18n.language);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
@@ -34,13 +35,13 @@ export default function LandingPage() {
               onClick={() => navigate('/login')}
               className="text-xs font-bold text-slate-700 hover:text-slate-900 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
             >
-              Login
+              {t('landing.login')}
             </button>
             <button
               onClick={() => navigate('/signup')}
               className="text-xs font-bold bg-primary hover:bg-primary-hover text-white px-3.5 py-1.5 rounded-xl shadow-xs transition-colors"
             >
-              Sign Up
+              {t('landing.signup')}
             </button>
           </div>
         </div>
@@ -56,9 +57,18 @@ export default function LandingPage() {
           </div>
         )}
 
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 mb-6 shadow-xs">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 mb-4 shadow-xs">
           <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
           <span>{t('landing.heroBadge')}</span>
+        </div>
+
+        {/* Hero Tractor Lottie Animation */}
+        <div className="w-36 h-36 sm:w-48 sm:h-48 my-1 flex items-center justify-center pointer-events-none">
+          <DotLottieReact
+            src="https://lottie.host/b3ee1784-ca13-4a98-9103-a46e988993fa/UoD2ajK4uk.json"
+            loop
+            autoplay
+          />
         </div>
 
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold font-heading text-slate-900 tracking-tight max-w-3xl leading-[1.15]">

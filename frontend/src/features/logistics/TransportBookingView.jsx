@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import {
   Truck,
   ShieldCheck,
@@ -281,6 +282,29 @@ export default function TransportBookingView({ userRole = 'farmer' }) {
             />
           </div>
 
+          {/* In Transit Live Animation Moment */}
+          {assignment.status === 'in_transit' && (
+            <div className="bg-gradient-to-r from-blue-50/90 via-white to-sky-50/90 rounded-2xl border border-blue-200 p-5 flex flex-col sm:flex-row items-center gap-5 shadow-xs animate-in fade-in zoom-in-95">
+              <div className="shrink-0 flex items-center justify-center">
+                <DotLottieReact
+                  src="https://lottie.host/41918dfd-f845-4b41-95ce-2b41363e8de4/R8Vo9MVouD.json"
+                  loop
+                  autoplay
+                  style={{ width: 150, height: 150 }}
+                />
+              </div>
+              <div className="text-center sm:text-left">
+                <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200 mb-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" /> Vehicle In Transit
+                </div>
+                <h4 className="font-heading font-bold text-foreground text-base">Crop Lot is En Route to Destination</h4>
+                <p className="text-xs text-muted-foreground mt-1 max-w-lg leading-relaxed">
+                  Real-time transport active with temperature and transit monitoring. Driver is en route directly to buyer facility.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Trip Summary Details */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm bg-slate-50 p-4 rounded-xl border border-border">
             <div>
@@ -350,7 +374,7 @@ export default function TransportBookingView({ userRole = 'farmer' }) {
           <div>
             <h2 className="text-xl font-heading font-bold text-foreground">Available Transport Providers</h2>
             <p className="text-xs text-muted-foreground">
-              Real-time vehicle availability with live Haversine distance from farmgate pickup.
+              Live vehicle availability with Haversine distance from farmgate pickup.
             </p>
           </div>
 

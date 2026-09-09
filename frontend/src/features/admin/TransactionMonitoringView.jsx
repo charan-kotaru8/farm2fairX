@@ -80,7 +80,7 @@ export default function TransactionMonitoringView() {
             End-to-End Transaction Monitoring
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            Real-time visual monitoring of deal flow from crop listing through quality verification, logistics, and settlement.
+            Live visual monitoring of deal flow from crop listing through quality verification, logistics, and settlement.
           </p>
         </div>
         <button

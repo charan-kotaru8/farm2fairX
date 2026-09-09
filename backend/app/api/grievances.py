@@ -34,7 +34,7 @@ def list_grievances(
     breached_only: bool = False,
 ):
     """
-    Lists grievances with real-time SLA breach evaluation (§7.3).
+    Lists grievances with live SLA breach evaluation (§7.3).
     SLA-breached tickets (>48h without resolution) are pinned to the top with is_sla_breached=True.
     """
     sb = get_supabase_admin()

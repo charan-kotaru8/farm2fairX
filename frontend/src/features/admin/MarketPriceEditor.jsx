@@ -168,7 +168,7 @@ export default function MarketPriceEditor() {
           <div>
             <h4 className="text-sm font-bold text-white">How This Live Demo Device Works (§7.4)</h4>
             <p className="text-xs text-blue-200/90 leading-relaxed mt-0.5 max-w-3xl">
-              The AI price recommendation engine queries real-time mandi prices dynamically on every invocation. When you edit any benchmark price in the table below, the change takes effect immediately without needing server reboots or cache invalidation. Test it with the live simulator below!
+              The AI/ML price recommendation engine queries daily-live mandi prices dynamically on every invocation. When you edit any benchmark price in the table below, the change takes effect immediately without needing server reboots or cache invalidation. Test it with the live simulator below!
             </p>
           </div>
         </div>

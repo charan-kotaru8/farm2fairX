@@ -229,3 +229,21 @@ def run_live_sync(force_live: bool = False) -> Dict[str, Any]:
     }
     save_sync_state(state)
     return state
+
+
+def sync_if_stale(max_age_hours: int = 6) -> Dict[str, Any]:
+    """
+    Check if the last sync is older than max_age_hours.
+    If stale, trigger a fresh live sync attempt (with fallback).
+    Returns the current sync state regardless.
+    """
+    state = get_sync_state()
+    try:
+        synced_at = datetime.fromisoformat(state.get("synced_at", "2000-01-01"))
+        age = datetime.utcnow() - synced_at
+        if age > timedelta(hours=max_age_hours):
+            logger.info(f"Market data is {age.total_seconds()/3600:.1f}h old — triggering auto-sync")
+            return run_live_sync(force_live=True)
+    except Exception as e:
+        logger.warning(f"Could not check sync staleness: {e}")
+    return state

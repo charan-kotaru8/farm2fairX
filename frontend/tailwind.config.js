@@ -36,6 +36,15 @@ export default {
         sans: ['Inter', 'sans-serif'],
         heading: ['Sora', 'sans-serif'],
       },
+      animation: {
+        'pulse-subtle': 'pulse-subtle 2s ease-in-out infinite',
+      },
+      keyframes: {
+        'pulse-subtle': {
+          '0%, 100%': { transform: 'scale(1)' },
+          '50%': { transform: 'scale(1.03)' },
+        },
+      },
     },
   },
   plugins: [],

@@ -78,7 +78,7 @@ export default function AdminDashboard() {
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200">
               Admin Governance Desk
             </span>
-            <span className="text-xs text-slate-400 font-mono">Real-time DB Sync</span>
+            <span className="text-xs text-slate-400 font-mono">Daily-Live DB Sync</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-heading font-extrabold text-slate-900">
             Marketplace Overview & Oversight

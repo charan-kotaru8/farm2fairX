@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Bell, Check, Clock, AlertTriangle, Truck, TrendingUp, CheckCircle, RefreshCw, X } from 'lucide-react';
 import { api } from '../../services/api';
 
-export default function NotificationCenter() {
+export default function NotificationCenter({ role = 'farmer', userId = null }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -15,7 +15,7 @@ export default function NotificationCenter() {
   const fetchNotifications = async (showSpin = false) => {
     if (showSpin) setIsRefreshing(true);
     try {
-      const data = await api.getNotifications();
+      const data = await api.getNotifications(userId, role);
       if (data && data.notifications) {
         setNotifications(data.notifications);
         setUnreadCount(data.unread_count || 0);
@@ -36,7 +36,7 @@ export default function NotificationCenter() {
     }, 15000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [role, userId]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -131,6 +131,9 @@ export default function NotificationCenter() {
           <div className="p-3.5 border-b border-slate-100 bg-slate-50/80 backdrop-blur-xs flex items-center justify-between">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-bold font-heading text-slate-800">Notifications</h3>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full capitalize bg-slate-100 text-slate-700 border border-slate-200">
+                {role === 'farmer' ? '🌾 Farmer' : (role === 'buyer' ? '🏢 Buyer' : (role === 'admin' ? '🛡️ Admin' : '🚜 FPO'))}
+              </span>
               {unreadCount > 0 ? (
                 <span className="text-[11px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-semibold">
                   {unreadCount} new

@@ -55,18 +55,21 @@ DECISION_TABLE: List[Tuple[
     ("down",  "strong",   None,      None,    "SELL_NOW"),
     ("down",  "moderate", "rising",  None,    "SELL_NOW"),
     ("down",  "moderate", None,      "Low",   "SELL_NOW"),
+    ("down",  "moderate", None,      "Medium","SELL_NOW"),
+    ("down",  "weak",     "rising",  None,    "SELL_NOW"),
     (None,    None,       "rising",  "Low",   "SELL_NOW"),       # arrivals spike + low demand
     ("up",    None,       "rising",  "Low",   "SELL_NOW"),       # DISAGREEMENT CASE: price up but supply glut incoming
 
-    # Wait conditions (price rising + favorable demand)
-    ("up",    "strong",   "falling", "High",  "WAIT"),
+    # Wait conditions (price rising + favorable demand / stable supply)
     ("up",    "strong",   "falling", None,    "WAIT"),
-    ("up",    "strong",   "stable",  "High",  "WAIT"),
-    ("up",    "moderate", None,      "High",  "WAIT"),
+    ("up",    "strong",   "stable",  None,    "WAIT"),
     ("up",    "moderate", "falling", None,    "WAIT"),
+    ("up",    "moderate", "stable",  "High",  "WAIT"),
+    ("up",    "moderate", "stable",  "Medium","WAIT"),
+    ("up",    "moderate", None,      "High",  "WAIT"),
     ("up",    "weak",     "falling", "High",  "WAIT"),
 
-    # Compare buyers — everything else
+    # Compare buyers — everything else (mixed signals, surging arrivals with rising price, flat trends)
     ("flat",  None,       None,      None,    "COMPARE_BUYERS"),
 ]
 

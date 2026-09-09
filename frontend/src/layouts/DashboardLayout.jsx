@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Outlet, useNavigate, NavLink } from 'react-router-dom';
-import { Bell, LogOut, User, Compass } from 'lucide-react';
+import { Outlet, useNavigate, NavLink, Navigate } from 'react-router-dom';
+import { Bell, LogOut, User, Compass, Loader2, UserCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import NotificationCenter from '../components/ui/NotificationCenter';
 import LanguageSelector from '../components/ui/LanguageSelector';
@@ -8,7 +9,8 @@ import GuidedDemoOverlay from '../components/ui/GuidedDemoOverlay';
 
 export default function DashboardLayout({ role }) {
   const navigate = useNavigate();
-  const { user, profile, logout } = useAuth();
+  const { t } = useTranslation();
+  const { user, profile, loading, logout } = useAuth();
   const [showGuidedTour, setShowGuidedTour] = useState(false);
   const isDemoMode = import.meta.env.VITE_DEMO_MODE !== 'false';
 
@@ -19,6 +21,23 @@ export default function DashboardLayout({ role }) {
     navigate('/login');
   };
 
+  // When Judge/Demo mode is OFF, strictly require real authentication
+  if (!isDemoMode) {
+    if (loading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-muted">
+          <div className="flex items-center gap-3 text-primary font-medium">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            <span>Authenticating...</span>
+          </div>
+        </div>
+      );
+    }
+    if (!user) {
+      return <Navigate to="/login" replace />;
+    }
+  }
+
   return (
     <div className="min-h-screen flex bg-muted">
       <aside className="w-64 bg-white border-r border-border hidden md:flex flex-col">
@@ -28,77 +47,80 @@ export default function DashboardLayout({ role }) {
           </div>
         </div>
         <nav className="flex-1 p-4 flex flex-col gap-1">
-          <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 px-2">Menu</div>
+          <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 px-2">{t('common.menu')}</div>
           {role === 'farmer' && (
             <>
               <NavLink to="/farmer/dashboard" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
-                <span className="text-lg w-6 text-center">📊</span> Dashboard
+                <span className="text-lg w-6 text-center">📊</span> {t('nav.dashboard')}
               </NavLink>
               <NavLink to="/farmer/market-intel" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
-                <span className="text-lg w-6 text-center">📈</span> Market Intel
+                <span className="text-lg w-6 text-center">📈</span> {t('nav.marketIntel')}
               </NavLink>
               <NavLink to="/farmer/lots" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
-                <span className="text-lg w-6 text-center">📦</span> My Lots & Offers
+                <span className="text-lg w-6 text-center">📦</span> {t('nav.myLots')}
               </NavLink>
               <NavLink to="/farmer/create-lot" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
-                <span className="text-lg w-6 text-center">➕</span> Create Lot
+                <span className="text-lg w-6 text-center">➕</span> {t('nav.createLot')}
+              </NavLink>
+              <NavLink to="/farmer/profile" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
+                <span className="text-lg w-6 text-center">👤</span> My Profile
               </NavLink>
               <NavLink to="/farmer/logistics" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
-                <span className="text-lg w-6 text-center">🚚</span> Logistics & Transport
+                <span className="text-lg w-6 text-center">🚚</span> {t('nav.logistics')}
               </NavLink>
               <NavLink to="/farmer/storage" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
-                <span className="text-lg w-6 text-center">🏬</span> Storage & Godowns
+                <span className="text-lg w-6 text-center">🏬</span> {t('nav.storage')}
               </NavLink>
             </>
           )}
           {role === 'buyer' && (
             <>
               <NavLink to="/buyer/dashboard" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
-                <span className="text-lg w-6 text-center">📊</span> Dashboard
+                <span className="text-lg w-6 text-center">📊</span> {t('nav.dashboard')}
               </NavLink>
               <NavLink to="/buyer/marketplace" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
-                <span className="text-lg w-6 text-center">🛒</span> Crop Marketplace
+                <span className="text-lg w-6 text-center">🛒</span> {t('nav.marketplace')}
               </NavLink>
               <NavLink to="/buyer/logistics" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
-                <span className="text-lg w-6 text-center">🚚</span> Logistics & Inspection
+                <span className="text-lg w-6 text-center">🚚</span> {t('nav.logistics')}
               </NavLink>
               <NavLink to="/buyer/verification" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
-                <span className="text-lg w-6 text-center">🛡️</span> Verification
+                <span className="text-lg w-6 text-center">🛡️</span> {t('nav.verification')}
               </NavLink>
             </>
           )}
           {role === 'admin' && (
             <>
               <NavLink to="/admin/dashboard" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
-                <span className="text-lg w-6 text-center">📊</span> Overview & Analytics
+                <span className="text-lg w-6 text-center">📊</span> {t('nav.adminDashboard')}
               </NavLink>
               <NavLink to="/admin/verifications" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
-                <span className="text-lg w-6 text-center">✅</span> Buyer Verifications
+                <span className="text-lg w-6 text-center">✅</span> {t('nav.buyerVerifications')}
               </NavLink>
               <NavLink to="/admin/grievances" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
-                <span className="text-lg w-6 text-center">⚖️</span> Grievance Triage
+                <span className="text-lg w-6 text-center">⚖️</span> {t('nav.grievances')}
               </NavLink>
               <NavLink to="/admin/markets" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
-                <span className="text-lg w-6 text-center">📈</span> Market Prices (Live Demo)
+                <span className="text-lg w-6 text-center">📈</span> {t('nav.marketPrices')}
               </NavLink>
               <NavLink to="/admin/transactions" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
-                <span className="text-lg w-6 text-center">🔍</span> Transaction Monitoring
+                <span className="text-lg w-6 text-center">🔍</span> {t('nav.transactions')}
               </NavLink>
             </>
           )}
           {role === 'fpo' && (
             <>
               <NavLink to="/fpo/dashboard" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
-                <span className="text-lg w-6 text-center">📊</span> Overview
+                <span className="text-lg w-6 text-center">📊</span> {t('nav.overview')}
               </NavLink>
               <NavLink to="/fpo/members" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
-                <span className="text-lg w-6 text-center">👥</span> Member Directory
+                <span className="text-lg w-6 text-center">👥</span> {t('nav.memberDirectory')}
               </NavLink>
               <NavLink to="/fpo/aggregate" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
-                <span className="text-lg w-6 text-center">🔄</span> Aggregate Lots
+                <span className="text-lg w-6 text-center">🔄</span> {t('nav.aggregateLots')}
               </NavLink>
               <NavLink to="/fpo/lots" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
-                <span className="text-lg w-6 text-center">📦</span> Aggregated Batches & Payouts
+                <span className="text-lg w-6 text-center">📦</span> {t('nav.myLots')}
               </NavLink>
             </>
           )}
@@ -107,27 +129,27 @@ export default function DashboardLayout({ role }) {
           {isDemoMode && (
             <div className="mt-auto pt-4 border-t border-border">
               <div className="flex items-center justify-between mb-2 px-2">
-                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Demo Role Switcher</span>
+                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{t('common.switchRole')}</span>
                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">
-                  Judging Only
+                  {t('common.demoModeBadge')}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-1.5 px-1">
                 <NavLink to="/farmer/dashboard" className={({isActive}) => `text-center py-1.5 px-2 rounded-md text-xs font-medium border transition-colors ${role === 'farmer' ? 'bg-emerald-50 text-emerald-800 border-emerald-300 font-semibold' : 'text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
-                  🌾 Farmer
+                  🌾 {t('common.farmerRole')}
                 </NavLink>
                 <NavLink to="/buyer/marketplace" className={({isActive}) => `text-center py-1.5 px-2 rounded-md text-xs font-medium border transition-colors ${role === 'buyer' ? 'bg-blue-50 text-blue-800 border-blue-300 font-semibold' : 'text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
-                  🏢 Buyer
+                  🏢 {t('common.buyerRole')}
                 </NavLink>
                 <NavLink to="/admin/dashboard" className={({isActive}) => `text-center py-1.5 px-2 rounded-md text-xs font-medium border transition-colors ${role === 'admin' ? 'bg-purple-50 text-purple-800 border-purple-300 font-semibold' : 'text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
-                  🛡️ Admin
+                  🛡️ {t('common.adminRole')}
                 </NavLink>
                 <NavLink to="/fpo/dashboard" className={({isActive}) => `text-center py-1.5 px-2 rounded-md text-xs font-medium border transition-colors ${role === 'fpo' ? 'bg-amber-50 text-amber-900 border-amber-300 font-semibold' : 'text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
-                  🚜 FPO Hub
+                  🚜 {t('common.fpoRole')}
                 </NavLink>
               </div>
               <div className="text-[9px] text-slate-400 text-center mt-2 px-1 leading-tight">
-                Disabled in production build (§8.2)
+                {t('common.disabledInProd')}
               </div>
             </div>
           )}
@@ -155,24 +177,24 @@ export default function DashboardLayout({ role }) {
               id="guided-tour-trigger-btn"
             >
               <Compass className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Guided Tour</span>
+              <span>{t('common.guidedTour')}</span>
             </button>
 
             {/* Quick switcher in topbar */}
             {isDemoMode && (
               <div className="hidden lg:flex items-center gap-1 bg-slate-100 p-1 rounded-lg text-xs">
-                <span className="text-slate-500 px-1.5 font-medium">Role:</span>
-                <NavLink to="/farmer/dashboard" className={({isActive}) => `px-2 py-1 rounded transition-colors ${role === 'farmer' ? 'bg-white shadow-xs font-bold text-emerald-700' : 'text-slate-600 hover:text-slate-900'}`}>Farmer</NavLink>
-                <NavLink to="/buyer/marketplace" className={({isActive}) => `px-2 py-1 rounded transition-colors ${role === 'buyer' ? 'bg-white shadow-xs font-bold text-blue-700' : 'text-slate-600 hover:text-slate-900'}`}>Buyer</NavLink>
-                <NavLink to="/fpo/dashboard" className={({isActive}) => `px-2 py-1 rounded transition-colors ${role === 'fpo' ? 'bg-white shadow-xs font-bold text-amber-800' : 'text-slate-600 hover:text-slate-900'}`}>FPO</NavLink>
-                <NavLink to="/admin/dashboard" className={({isActive}) => `px-2 py-1 rounded transition-colors ${role === 'admin' ? 'bg-white shadow-xs font-bold text-purple-800' : 'text-slate-600 hover:text-slate-900'}`}>Admin</NavLink>
+                <span className="text-slate-500 px-1.5 font-medium">{t('common.role')}:</span>
+                <NavLink to="/farmer/dashboard" className={({isActive}) => `px-2 py-1 rounded transition-colors ${role === 'farmer' ? 'bg-white shadow-xs font-bold text-emerald-700' : 'text-slate-600 hover:text-slate-900'}`}>{t('common.farmerRole')}</NavLink>
+                <NavLink to="/buyer/marketplace" className={({isActive}) => `px-2 py-1 rounded transition-colors ${role === 'buyer' ? 'bg-white shadow-xs font-bold text-blue-700' : 'text-slate-600 hover:text-slate-900'}`}>{t('common.buyerRole')}</NavLink>
+                <NavLink to="/fpo/dashboard" className={({isActive}) => `px-2 py-1 rounded transition-colors ${role === 'fpo' ? 'bg-white shadow-xs font-bold text-amber-800' : 'text-slate-600 hover:text-slate-900'}`}>{t('common.fpoRole')}</NavLink>
+                <NavLink to="/admin/dashboard" className={({isActive}) => `px-2 py-1 rounded transition-colors ${role === 'admin' ? 'bg-white shadow-xs font-bold text-purple-800' : 'text-slate-600 hover:text-slate-900'}`}>{t('common.adminRole')}</NavLink>
               </div>
             )}
 
             <LanguageSelector />
-            <NotificationCenter />
-            <button className="p-2 text-muted-foreground hover:text-foreground flex items-center gap-2">
-              <User className="w-5 h-5" />
+            <NotificationCenter role={role} />
+            <button onClick={() => navigate(role === 'farmer' ? '/farmer/profile' : '#')} className="p-2 text-muted-foreground hover:text-foreground flex items-center gap-2" title="My Profile">
+              <UserCircle className="w-5 h-5" />
             </button>
             <button onClick={handleLogout} className="p-2 text-danger hover:text-danger/80">
               <LogOut className="w-5 h-5" />

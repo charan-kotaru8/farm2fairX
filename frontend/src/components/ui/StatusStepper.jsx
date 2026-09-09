@@ -1,4 +1,5 @@
 import React from 'react';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { Check, Truck, Clock, PackageCheck, Navigation, MapPin, Package, HandCoins, CheckCircle2, ShieldCheck } from 'lucide-react';
 
 export const DEFAULT_TRANSPORT_STEPS = [
@@ -53,6 +54,19 @@ export default function StatusStepper({
 
           return (
             <div key={step.key} className="flex flex-col items-center relative z-10 min-w-[70px] sm:min-w-[100px]">
+              {/* Floating mini live truck animation for In Transit when active */}
+              {step.key === 'in_transit' && isCurrent && (
+                <div className="absolute -top-14 left-1/2 -translate-x-1/2 pointer-events-none z-20 flex flex-col items-center animate-in fade-in zoom-in-90">
+                  <div className="w-16 h-16 flex items-center justify-center">
+                    <DotLottieReact
+                      src="https://lottie.host/41918dfd-f845-4b41-95ce-2b41363e8de4/R8Vo9MVouD.json"
+                      loop
+                      autoplay
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Node Icon Circle */}
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-xs ${

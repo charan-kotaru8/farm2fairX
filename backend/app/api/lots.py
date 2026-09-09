@@ -8,6 +8,7 @@ router = APIRouter()
 
 
 class LotCreate(BaseModel):
+    farmer_id: Optional[str] = None
     crop_id: str
     quantity: float
     quality_grade: str = "A"
@@ -45,6 +46,8 @@ def get_lot(lot_id: str):
 def create_lot(lot: LotCreate):
     """Create a new crop lot."""
     sb = get_supabase_admin()
+    if not lot.farmer_id:
+        raise HTTPException(status_code=400, detail="farmer_id is required")
     lot_data = {
         "crop_id": lot.crop_id,
         "quantity": lot.quantity,
@@ -55,7 +58,7 @@ def create_lot(lot: LotCreate):
         "available_until": lot.available_until,
         "storage_required": lot.storage_required,
         "description": lot.description,
-        "farmer_id": "00000000-0000-0000-0000-000000000001",  # demo farmer for now
+        "farmer_id": lot.farmer_id,
         "created_at": datetime.utcnow().isoformat(),
         "updated_at": datetime.utcnow().isoformat(),
     }

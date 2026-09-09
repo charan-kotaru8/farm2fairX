@@ -495,6 +495,15 @@ Use Postgres enums/check constraints for every status field — prevents "imposs
 - [x] Deployed URL, Swagger docs, live-DB view rehearsed as demo evidence beats
 - [x] All original Phase 8 items (responsive, states, seed data, Guided Demo Mode, performance, README) complete
 
+- **8.7 Per-Crop AI Recommendations:**
+  - **Problem solved:** The farmer dashboard previously showed **one recommendation card hardcoded to Soybean + Latur APMC**, even when the farmer has multiple crops listed. No crop identification, no per-crop differentiation.
+  - **New endpoint:** `GET /ai/farmer-recommendations?farmer_id=xxx` fetches ALL active lots for a farmer, groups by crop, finds the best market for each, and runs the full AI pipeline (regression + rule engine) independently per crop.
+  - **Auto-sync on load:** The endpoint calls `sync_if_stale(max_age_hours=6)` — if Agmarknet data is older than 6 hours, a fresh live pull (with stale-fallback) is triggered automatically before computing recommendations.
+  - **Data lineage:** `Agmarknet → market_prices table → fetch_price_series → predict_price_range (regression) → decide_action (rule engine) → per-crop recommendation card`.
+  - **Frontend UI:** Replaced single `PriceRecommendationCard` with `CropRecommendationsPanel` — tabbed interface showing one tab per crop (e.g. 🫘 Tur Dal | 🌱 Soybean | 🌿 Cotton). Each tab shows: crop name/icon, market name, action badge (Sell Now / Wait / Compare Buyers) with gradient styling, price range with crop unit, confidence meter, explanation from real numbers, signal chips, and lot context ("You have 40 quintals listed across 2 lots").
+  - **Refresh button:** Manual refresh triggers a force-live sync and reloads all recommendations.
+  - **Files added/modified:** `backend/app/api/farmer_recommendations.py` (new), `backend/app/services/live_sync.py` (added `sync_if_stale`), `frontend/src/features/farmer-dashboard/CropRecommendationsPanel.jsx` (new), `frontend/src/features/farmer-dashboard/FarmerDashboard.jsx` (updated to use new component).
+
 ---
 
 ## 9. Demo Readiness Playbook

@@ -60,7 +60,7 @@ def list_buyers(
 
 @router.get("/buyers/{buyer_id}")
 def get_buyer(buyer_id: str):
-    """Get single buyer details and real-time tier evaluation."""
+    """Get single buyer details and live tier evaluation."""
     sb = get_supabase_admin()
     res = sb.table("buyers").select("*").eq("id", buyer_id).maybe_single().execute()
     if not res.data:

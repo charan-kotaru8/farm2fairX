@@ -7,25 +7,57 @@ router = APIRouter()
 
 
 @router.get("")
-def list_notifications(user_id: Optional[str] = None):
+def list_notifications(user_id: Optional[str] = None, role: Optional[str] = None):
     """
     Returns notifications with unread count.
     Used by the client polling mechanism (every 15-30s, §7.5).
+    Separates notifications by role:
+    - farmer: lot bids, transport pickups, mandi price trends, weather advisories
+    - buyer: accepted offers, transport tracking, verification tier updates
+    - admin: grievance triage tickets, buyer verification requests, platform audits
     """
     sb = get_supabase_admin()
     q = sb.table("notifications").select("*")
     if user_id:
         q = q.eq("user_id", user_id)
 
-    notifications = q.order("created_at", desc=True).limit(20).execute().data or []
+    notifications = q.order("created_at", desc=True).limit(30).execute().data or []
+
+    # Role-based separation
+    if role == "farmer":
+        notifications = [
+            n for n in notifications
+            if n.get("category") in ["transaction", "price_alert", "market", "transport", "weather"]
+            or "offer" in (n.get("title", "")).lower()
+            or "transport" in (n.get("title", "")).lower()
+            or "price" in (n.get("title", "")).lower()
+        ]
+    elif role == "buyer":
+        notifications = [
+            n for n in notifications
+            if n.get("category") in ["transaction", "transport", "market", "buyer_verification"]
+            or "offer" in (n.get("title", "")).lower()
+            or "transport" in (n.get("title", "")).lower()
+            or "verification" in (n.get("title", "")).lower()
+        ]
+    elif role == "admin":
+        notifications = [
+            n for n in notifications
+            if n.get("category") in ["grievance", "admin", "verification", "audit"]
+            or (n.get("link_url") or "").startswith("/admin")
+            or "grievance" in (n.get("title", "")).lower()
+        ]
+
     unread_count = len([n for n in notifications if not n.get("is_read")])
 
     return {
         "notifications": notifications,
         "unread_count": unread_count,
+        "role": role,
         "polling_interval_seconds": 15,
-        "mechanism": "Interval polling / refetch-on-navigation (§7.5)",
+        "mechanism": "Role-separated polling / refetch-on-navigation (§7.5)",
     }
+
 
 
 @router.post("/{notification_id}/read")

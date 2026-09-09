@@ -11,6 +11,7 @@ import FarmerDashboard from './features/farmer-dashboard/FarmerDashboard';
 import FarmerLotsView from './features/farmer-dashboard/FarmerLotsView';
 import MarketIntelligence from './features/market-intel/MarketIntelligence';
 import LotCreationForm from './features/farmer-dashboard/LotCreationForm';
+import FarmerProfilePage from './features/farmer-dashboard/FarmerProfilePage';
 // Buyer
 import BuyerDashboard from './features/buyer-marketplace/BuyerDashboard';
 import BuyerMarketplace from './features/buyer-marketplace/BuyerMarketplace';
@@ -50,6 +51,7 @@ function App() {
             <Route path="lots" element={<FarmerLotsView />} />
             <Route path="lots/:lotId" element={<FarmerLotsView />} />
             <Route path="create-lot" element={<LotCreationForm />} />
+            <Route path="profile" element={<FarmerProfilePage />} />
             <Route path="logistics" element={<TransportBookingView userRole="farmer" />} />
             <Route path="storage" element={<StorageFacilitiesView />} />
           </Route>
