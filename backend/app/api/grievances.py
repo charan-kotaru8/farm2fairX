@@ -158,10 +158,10 @@ def resolve_grievance(grievance_id: str, req: GrievanceResolveRequest):
         raise HTTPException(status_code=400, detail="Status must be 'resolved' or 'rejected'")
 
     sb = get_supabase_admin()
-    g_res = sb.table("grievances").select("*").eq("id", grievance_id).maybe_single().execute()
-    if not g_res.data:
+    g_res = sb.table("grievances").select("*").eq("id", grievance_id).limit(1).execute()
+    if not g_res.data or len(g_res.data) == 0:
         raise HTTPException(status_code=404, detail="Grievance not found")
-    grievance = g_res.data
+    grievance = g_res.data[0]
 
     now = datetime.utcnow().isoformat()
     update_data = {

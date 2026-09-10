@@ -21,7 +21,7 @@ export default function DashboardLayout({ role }) {
     navigate('/login');
   };
 
-  // When Judge/Demo mode is OFF, strictly require real authentication
+  // When Judge/Demo mode is OFF, strictly require real authentication and enforce role access
   if (!isDemoMode) {
     if (loading) {
       return (
@@ -35,6 +35,13 @@ export default function DashboardLayout({ role }) {
     }
     if (!user) {
       return <Navigate to="/login" replace />;
+    }
+
+    // Strict Role Guarding: Prevent access to unauthorized role portals
+    const userRole = profile?.role || user?.user_metadata?.role || 'farmer';
+    if (userRole !== role) {
+      const targetPath = userRole === 'farmer' ? '/farmer/dashboard' : `/${userRole}/dashboard`;
+      return <Navigate to={targetPath} replace />;
     }
   }
 
@@ -170,7 +177,7 @@ export default function DashboardLayout({ role }) {
             <div className="font-heading font-bold text-lg capitalize">{role === 'fpo' ? '🌾 FPO Aggregation Hub' : `${role} Dashboard`}</div>
             {role === 'fpo' && (
               <span className="text-xs bg-amber-100 text-amber-900 border border-amber-200 px-2.5 py-0.5 rounded-full font-medium">
-                Kisan Vikas FPO (Latur)
+                {profile?.full_name ? (profile.full_name.toLowerCase().includes('fpo') ? profile.full_name : `${profile.full_name} FPO`) : 'FPO Collective'} {profile?.district ? `(${profile.district})` : ''}
               </span>
             )}
           </div>

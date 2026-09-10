@@ -9,13 +9,74 @@ router = APIRouter()
 DEFAULT_FPO_ID = "44444444-0000-0000-0000-000000000001"
 
 
+def resolve_fpo(fpo_id: Optional[str] = None, user_id: Optional[str] = None):
+    """
+    Dynamically finds or auto-provisions the FPO record for an FPO manager.
+    - If user_id is provided, checks if an fpos row or profiles.fpo_id is tied to that user.
+    - If fpo_id is provided, fetches that FPO.
+    - If neither or not found, falls back to the primary FPO in the database.
+    """
+    sb = get_supabase_admin()
+    if user_id:
+        fpo_res = sb.table("fpos").select("*").eq("profile_id", user_id).limit(1).execute()
+        if fpo_res and fpo_res.data and len(fpo_res.data) > 0:
+            return fpo_res.data[0]
+        
+        prof_res = sb.table("profiles").select("fpo_id, full_name, district, role").eq("id", user_id).limit(1).execute()
+        if prof_res and prof_res.data and len(prof_res.data) > 0:
+            prof = prof_res.data[0]
+            if prof.get("fpo_id"):
+                fpo_res = sb.table("fpos").select("*").eq("id", prof["fpo_id"]).limit(1).execute()
+                if fpo_res and fpo_res.data and len(fpo_res.data) > 0:
+                    return fpo_res.data[0]
+            elif prof.get("role") == "fpo":
+                fpo_name = prof.get("full_name") or "Farmer Producer Co."
+                if not fpo_name.lower().endswith("fpo") and "producer" not in fpo_name.lower() and "cooperative" not in fpo_name.lower():
+                    fpo_name = f"{fpo_name} Farmer Producer Co."
+                district = prof.get("district") or "Latur"
+                try:
+                    new_fpo = sb.table("fpos").insert({
+                        "name": fpo_name,
+                        "district": district,
+                        "state": "Maharashtra",
+                        "contact_person": prof.get("full_name") or "FPO Manager",
+                        "profile_id": user_id,
+                        "total_members": 0,
+                    }).execute()
+                    if new_fpo and new_fpo.data and len(new_fpo.data) > 0:
+                        sb.table("profiles").update({"fpo_id": new_fpo.data[0]["id"]}).eq("id", user_id).execute()
+                        return new_fpo.data[0]
+                except Exception as e:
+                    print(f"[!] Error auto-creating FPO entity: {e}")
+
+    if fpo_id:
+        fpo_res = sb.table("fpos").select("*").eq("id", fpo_id).limit(1).execute()
+        if fpo_res and fpo_res.data and len(fpo_res.data) > 0:
+            return fpo_res.data[0]
+
+    first_fpo = sb.table("fpos").select("*").order("created_at").limit(1).execute()
+    if first_fpo and first_fpo.data and len(first_fpo.data) > 0:
+        return first_fpo.data[0]
+
+    return {
+        "id": DEFAULT_FPO_ID,
+        "name": "Farmer Producer Co.",
+        "district": "Latur",
+        "state": "Maharashtra",
+        "total_members": 0,
+    }
+
+
 class AggregateRequest(BaseModel):
-    fpo_id: Optional[str] = DEFAULT_FPO_ID
+    fpo_id: Optional[str] = None
+    user_id: Optional[str] = None
     lot_ids: List[str]
     description: Optional[str] = None
 
 
 class EligibilityCheckRequest(BaseModel):
+    fpo_id: Optional[str] = None
+    user_id: Optional[str] = None
     reference_lot_id: Optional[str] = None
     selected_lot_ids: List[str] = []
 
@@ -39,7 +100,7 @@ class FpoJoinRequestResolve(BaseModel):
 
 
 @router.get("/dashboard-stats")
-def get_fpo_dashboard_stats(fpo_id: str = DEFAULT_FPO_ID):
+def get_fpo_dashboard_stats(fpo_id: Optional[str] = None, user_id: Optional[str] = None):
     """
     Overview metrics for FPO dashboard bento grid:
     - Registered members
@@ -49,25 +110,17 @@ def get_fpo_dashboard_stats(fpo_id: str = DEFAULT_FPO_ID):
     - Estimated bulk financial premium gain
     """
     sb = get_supabase_admin()
-
-    # 1. FPO info
-    fpo_res = sb.table("fpos").select("*").eq("id", fpo_id).maybe_single().execute()
-    fpo = fpo_res.data or {
-        "id": fpo_id,
-        "name": "Kisan Vikas Farmer Producer Co.",
-        "district": "Latur",
-        "state": "Maharashtra",
-        "total_members": 6,
-    }
+    fpo = resolve_fpo(fpo_id, user_id)
+    target_fpo_id = fpo["id"]
 
     # 2. Members count
-    members_res = sb.table("fpo_members").select("id").eq("fpo_id", fpo_id).execute()
+    members_res = sb.table("fpo_members").select("id").eq("fpo_id", target_fpo_id).execute()
     total_members = len(members_res.data or [])
 
     # 3. Candidate unaggregated lots
     candidate_lots = sb.table("lots") \
         .select("id, quantity, quality_grade, crop_id, crops(name, icon)") \
-        .eq("fpo_id", fpo_id) \
+        .eq("fpo_id", target_fpo_id) \
         .eq("is_aggregated", False) \
         .is_("parent_aggregated_lot_id", "null") \
         .eq("status", "active") \
@@ -78,7 +131,7 @@ def get_fpo_dashboard_stats(fpo_id: str = DEFAULT_FPO_ID):
     # 4. Aggregated lots
     agg_lots = sb.table("lots") \
         .select("id, quantity, member_count, status") \
-        .eq("fpo_id", fpo_id) \
+        .eq("fpo_id", target_fpo_id) \
         .eq("is_aggregated", True) \
         .execute().data or []
     agg_count = len(agg_lots)
@@ -106,15 +159,15 @@ def get_fpo_dashboard_stats(fpo_id: str = DEFAULT_FPO_ID):
         "recent_activity": [
             {
                 "id": "act-1",
-                "title": "Batch #1 Escrow Secured",
-                "description": "Apex Agro accepted 75q Soybean @ Rs. 4,920/q. Escrow: Rs. 3,69,000.",
+                "title": "Batch Escrow Secured",
+                "description": f"{fpo.get('name', 'FPO')} collective produce registered for bulk commercial trade.",
                 "date": "2 days ago",
                 "badge": "Escrow Active",
             },
             {
                 "id": "act-2",
-                "title": "New Member Lots Registered",
-                "description": "4 members listed fresh Grade A Soybean ready for pooling.",
+                "title": "Member Lots Registered",
+                "description": f"{total_members} registered members in {fpo.get('district', 'Maharashtra')} cluster.",
                 "date": "Yesterday",
                 "badge": "Lots Available",
             },
@@ -123,10 +176,13 @@ def get_fpo_dashboard_stats(fpo_id: str = DEFAULT_FPO_ID):
 
 
 @router.get("/members")
-def list_fpo_members(fpo_id: str = DEFAULT_FPO_ID):
+def list_fpo_members(fpo_id: Optional[str] = None, user_id: Optional[str] = None):
     """List all registered members of the FPO with active lot summaries."""
     sb = get_supabase_admin()
-    members = sb.table("fpo_members").select("*").eq("fpo_id", fpo_id).order("farmer_name").execute().data or []
+    fpo = resolve_fpo(fpo_id, user_id)
+    target_fpo_id = fpo["id"]
+
+    members = sb.table("fpo_members").select("*").eq("fpo_id", target_fpo_id).order("farmer_name").execute().data or []
 
     # Attach active lots count to each member
     for m in members:
@@ -144,15 +200,18 @@ def list_fpo_members(fpo_id: str = DEFAULT_FPO_ID):
 
 
 @router.get("/lots/candidate")
-def get_candidate_lots(fpo_id: str = DEFAULT_FPO_ID):
+def get_candidate_lots(fpo_id: Optional[str] = None, user_id: Optional[str] = None):
     """
     Fetch all member lots eligible/available for aggregation pooling.
     Includes crop information and member profile metadata.
     """
     sb = get_supabase_admin()
+    fpo = resolve_fpo(fpo_id, user_id)
+    target_fpo_id = fpo["id"]
+
     lots = sb.table("lots") \
         .select("*, crops(name, icon, unit), fpo_members(farmer_name, village, district, avatar_initials, phone)") \
-        .eq("fpo_id", fpo_id) \
+        .eq("fpo_id", target_fpo_id) \
         .eq("is_aggregated", False) \
         .is_("parent_aggregated_lot_id", "null") \
         .order("harvest_date", desc=True) \
@@ -171,9 +230,12 @@ def check_eligibility(req: EligibilityCheckRequest):
     Returns per-lot status and human-readable explanation.
     """
     sb = get_supabase_admin()
+    fpo = resolve_fpo(req.fpo_id, req.user_id)
+    target_fpo_id = fpo["id"]
+
     lots = sb.table("lots") \
         .select("*, crops(name, icon, unit), fpo_members(farmer_name, village, avatar_initials)") \
-        .eq("fpo_id", DEFAULT_FPO_ID) \
+        .eq("fpo_id", target_fpo_id) \
         .eq("is_aggregated", False) \
         .is_("parent_aggregated_lot_id", "null") \
         .execute().data or []
@@ -435,12 +497,16 @@ def create_aggregated_lot(req: AggregateRequest):
     member_count = len(member_ids)
     crop_name = lots[0].get("crops", {}).get("name", "Crop")
 
-    desc = req.description or f"FPO Aggregated {crop_name} Grade {ref_grade} Pool ({member_count} member farmers, {total_quantity} quintals)."
+    fpo = resolve_fpo(req.fpo_id, req.user_id)
+    target_fpo_id = fpo["id"]
+    fpo_name = fpo.get("name", "FPO")
+
+    desc = req.description or f"{fpo_name} Aggregated {crop_name} Grade {ref_grade} Pool ({member_count} member farmers, {total_quantity} quintals)."
 
     # 3. Insert parent lot
     now = datetime.utcnow().isoformat()
     parent_lot_payload = {
-        "fpo_id": req.fpo_id or DEFAULT_FPO_ID,
+        "fpo_id": target_fpo_id,
         "crop_id": ref_crop_id,
         "quantity": total_quantity,
         "quality_grade": ref_grade,
@@ -498,15 +564,18 @@ def create_aggregated_lot(req: AggregateRequest):
 
 
 @router.get("/lots")
-def get_fpo_aggregated_lots(fpo_id: str = DEFAULT_FPO_ID):
+def get_fpo_aggregated_lots(fpo_id: Optional[str] = None, user_id: Optional[str] = None):
     """
     List all aggregated lots belonging to the FPO,
     along with incoming buyer offers and member count.
     """
     sb = get_supabase_admin()
+    fpo = resolve_fpo(fpo_id, user_id)
+    target_fpo_id = fpo["id"]
+
     lots = sb.table("lots") \
         .select("*, crops(name, icon, unit)") \
-        .eq("fpo_id", fpo_id) \
+        .eq("fpo_id", target_fpo_id) \
         .eq("is_aggregated", True) \
         .order("created_at", desc=True) \
         .execute().data or []
@@ -669,11 +738,12 @@ def submit_join_request(req: FpoJoinRequestCreate):
 
     # Notify farmer of submission confirmation
     try:
-        fpo_data = sb.table("fpos").select("name").eq("id", req.fpo_id).maybe_single().execute().data or {}
+        fpo_data_res = sb.table("fpos").select("name").eq("id", req.fpo_id).limit(1).execute()
+        fpo_data = fpo_data_res.data[0] if fpo_data_res.data and len(fpo_data_res.data) > 0 else {}
         fpo_name = fpo_data.get("name", "FPO")
         
         p_chk = sb.table("profiles").select("id").eq("id", req.farmer_id).execute()
-        if p_chk.data:
+        if p_chk.data and len(p_chk.data) > 0:
             sb.table("notifications").insert({
                 "user_id": req.farmer_id,
                 "title": f"FPO Join Request: {fpo_name}",
@@ -693,12 +763,15 @@ def submit_join_request(req: FpoJoinRequestCreate):
 
 
 @router.get("/join-requests")
-def list_join_requests(fpo_id: str = DEFAULT_FPO_ID, status: Optional[str] = None):
+def list_join_requests(fpo_id: Optional[str] = None, user_id: Optional[str] = None, status: Optional[str] = None):
     """
     List membership join requests for an FPO.
     """
     sb = get_supabase_admin()
-    q = sb.table("fpo_join_requests").select("*, fpos(name, district)").eq("fpo_id", fpo_id)
+    fpo = resolve_fpo(fpo_id, user_id)
+    target_fpo_id = fpo["id"]
+
+    q = sb.table("fpo_join_requests").select("*, fpos(name, district)").eq("fpo_id", target_fpo_id)
     if status:
         q = q.eq("status", status)
     res = q.order("created_at", desc=True).execute()
@@ -716,11 +789,11 @@ def resolve_join_request(request_id: str, action: FpoJoinRequestResolve):
       4. Creates cross-role notification for the farmer
     """
     sb = get_supabase_admin()
-    r_res = sb.table("fpo_join_requests").select("*, fpos(name)").eq("id", request_id).maybe_single().execute()
-    if not r_res.data:
+    r_res = sb.table("fpo_join_requests").select("*, fpos(name)").eq("id", request_id).limit(1).execute()
+    if not r_res.data or len(r_res.data) == 0:
         raise HTTPException(status_code=404, detail="Join request not found")
 
-    req = r_res.data
+    req = r_res.data[0]
     now_str = datetime.utcnow().isoformat()
 
     # Update request status

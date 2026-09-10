@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import { Users, Phone, MapPin, Layers, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export default function MemberDirectory() {
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterCrop, setFilterCrop] = useState('');
@@ -12,7 +14,10 @@ export default function MemberDirectory() {
   useEffect(() => {
     async function loadMembers() {
       try {
-        const data = await api.getFpoMembers();
+        const data = await api.getFpoMembers({
+          userId: user?.id,
+          fpoId: profile?.fpo_id,
+        });
         setMembers(data);
       } catch (err) {
         console.error('Failed to load members:', err);
@@ -21,7 +26,7 @@ export default function MemberDirectory() {
       }
     }
     loadMembers();
-  }, []);
+  }, [user, profile]);
 
   const filteredMembers = members.filter(m => {
     if (filterCrop && m.primary_crop !== filterCrop) return false;
@@ -45,6 +50,10 @@ export default function MemberDirectory() {
     );
   }
 
+  const fpoDisplayName = profile?.full_name 
+    ? (profile.full_name.toLowerCase().includes('fpo') || profile.full_name.toLowerCase().includes('producer') ? profile.full_name : `${profile.full_name} Farmer Producer Co.`)
+    : 'Farmer Producer Co.';
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -52,7 +61,7 @@ export default function MemberDirectory() {
         <div>
           <h1 className="text-3xl font-heading font-bold text-foreground">FPO Member Directory</h1>
           <p className="text-muted-foreground text-sm">
-            Kisan Vikas Farmer Producer Co. • 6 smallholder farmer members in Latur district
+            {fpoDisplayName} • {members.length} smallholder farmer members in {profile?.district || 'Maharashtra'}
           </p>
         </div>
 

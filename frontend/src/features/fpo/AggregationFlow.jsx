@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import BeforeAfterBenefitCard from './BeforeAfterBenefitCard';
 import {
@@ -19,6 +20,7 @@ import {
 
 export default function AggregationFlow() {
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
 
   // Step management: 1 = Lot Selection, 2 = Review & Payout Split
   const [step, setStep] = useState(1);
@@ -37,14 +39,16 @@ export default function AggregationFlow() {
   useEffect(() => {
     async function loadCandidates() {
       try {
-        const lots = await api.getFpoCandidateLots();
+        const lots = await api.getFpoCandidateLots({
+          userId: user?.id,
+          fpoId: profile?.fpo_id,
+        });
         setCandidateLots(lots);
 
         // Pre-select the first eligible Soybean Grade A lot as reference if available
         const firstEligible = lots.find(l => l.crops?.name === 'Soybean' && l.quality_grade === 'A');
         if (firstEligible) {
           setReferenceLotId(firstEligible.id);
-          // Pre-select the 4 eligible Soybean lots for demonstration speed
           const eligibleSoybeans = lots
             .filter(l => l.crops?.name === 'Soybean' && l.quality_grade === 'A' && l.id !== '44444444-0000-0000-0000-000000000106')
             .map(l => l.id);
@@ -58,7 +62,7 @@ export default function AggregationFlow() {
       }
     }
     loadCandidates();
-  }, []);
+  }, [user, profile]);
 
   // 2. Re-check eligibility whenever reference or selection changes
   useEffect(() => {
@@ -66,6 +70,8 @@ export default function AggregationFlow() {
       if (candidateLots.length === 0) return;
       try {
         const res = await api.checkFpoEligibility({
+          userId: user?.id,
+          fpoId: profile?.fpo_id,
           referenceLotId: referenceLotId || (selectedLotIds.length > 0 ? selectedLotIds[0] : null),
           selectedLotIds,
         });
@@ -75,7 +81,7 @@ export default function AggregationFlow() {
       }
     }
     runEligibilityCheck();
-  }, [referenceLotId, selectedLotIds, candidateLots]);
+  }, [referenceLotId, selectedLotIds, candidateLots, user, profile]);
 
   // 3. Fetch data-driven benefit analysis when selection changes
   useEffect(() => {
@@ -145,6 +151,8 @@ export default function AggregationFlow() {
     setError('');
     try {
       await api.createFpoAggregation({
+        userId: user?.id,
+        fpoId: profile?.fpo_id,
         lotIds: selectedLotIds,
         description: customDescription || undefined,
       });
@@ -510,7 +518,7 @@ export default function AggregationFlow() {
                 type="text"
                 value={customDescription}
                 onChange={e => setCustomDescription(e.target.value)}
-                placeholder="e.g. Kisan Vikas FPO Certified JS-335 Grade A Bulk Soybean Pool (Solvent extraction grade, 10.2% moisture)"
+                placeholder={`e.g. ${profile?.full_name || 'FPO'} Certified JS-335 Grade A Bulk Soybean Pool (Solvent extraction grade, 10.2% moisture)`}
                 className="w-full rounded-xl border border-border px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import { 
   Users, CheckCircle2, XCircle, Clock, AlertCircle, 
@@ -6,6 +7,7 @@ import {
 } from 'lucide-react';
 
 export default function JoinRequestQueue() {
+  const { user, profile } = useAuth();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('pending');
@@ -21,6 +23,8 @@ export default function JoinRequestQueue() {
     setLoading(true);
     try {
       const data = await api.getFpoJoinRequests({
+        userId: user?.id,
+        fpoId: profile?.fpo_id,
         status: filterStatus === 'all' ? undefined : filterStatus,
       });
       setRequests(data);
@@ -33,7 +37,7 @@ export default function JoinRequestQueue() {
 
   useEffect(() => {
     fetchRequests();
-  }, [filterStatus]);
+  }, [filterStatus, user, profile]);
 
   const handleOpenActionModal = (req, targetStatus) => {
     setActionModal({ request: req, targetStatus });

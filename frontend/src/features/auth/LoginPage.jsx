@@ -16,7 +16,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (user) {
       const userRole = profile?.role || user?.user_metadata?.role || 'farmer';
-      const targetPath = userRole === 'farmer' ? '/farmer/dashboard' : `/${userRole}-dashboard`;
+      const targetPath = `/${userRole}/dashboard`;
       navigate(targetPath, { replace: true });
     }
   }, [user, profile, navigate]);
@@ -28,8 +28,8 @@ export default function LoginPage() {
 
     try {
       const { user: loggedInUser } = await login(email, password);
-      const userRole = loggedInUser?.user_metadata?.role || role || 'farmer';
-      const targetPath = userRole === 'farmer' ? '/farmer/dashboard' : `/${userRole}-dashboard`;
+      const userRole = profile?.role || loggedInUser?.user_metadata?.role || 'farmer';
+      const targetPath = `/${userRole}/dashboard`;
       navigate(targetPath, { replace: true });
     } catch (err) {
       console.warn('Login error:', err.message);

@@ -223,32 +223,52 @@ export const api = {
 
 
   // FPO Aggregation
-  async getFpoDashboardStats(fpoId) {
-    const url = fpoId ? `${API_BASE}/fpo/dashboard-stats?fpo_id=${fpoId}` : `${API_BASE}/fpo/dashboard-stats`;
+  async getFpoDashboardStats(params = {}) {
+    const fpoId = typeof params === 'string' ? params : params?.fpoId;
+    const userId = typeof params === 'object' ? params?.userId : undefined;
+    const query = new URLSearchParams();
+    if (fpoId) query.set('fpo_id', fpoId);
+    if (userId) query.set('user_id', userId);
+    const qs = query.toString();
+    const url = qs ? `${API_BASE}/fpo/dashboard-stats?${qs}` : `${API_BASE}/fpo/dashboard-stats`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to load FPO dashboard stats');
     return res.json();
   },
 
-  async getFpoMembers(fpoId) {
-    const url = fpoId ? `${API_BASE}/fpo/members?fpo_id=${fpoId}` : `${API_BASE}/fpo/members`;
+  async getFpoMembers(params = {}) {
+    const fpoId = typeof params === 'string' ? params : params?.fpoId;
+    const userId = typeof params === 'object' ? params?.userId : undefined;
+    const query = new URLSearchParams();
+    if (fpoId) query.set('fpo_id', fpoId);
+    if (userId) query.set('user_id', userId);
+    const qs = query.toString();
+    const url = qs ? `${API_BASE}/fpo/members?${qs}` : `${API_BASE}/fpo/members`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to load FPO members');
     return res.json();
   },
 
-  async getFpoCandidateLots(fpoId) {
-    const url = fpoId ? `${API_BASE}/fpo/lots/candidate?fpo_id=${fpoId}` : `${API_BASE}/fpo/lots/candidate`;
+  async getFpoCandidateLots(params = {}) {
+    const fpoId = typeof params === 'string' ? params : params?.fpoId;
+    const userId = typeof params === 'object' ? params?.userId : undefined;
+    const query = new URLSearchParams();
+    if (fpoId) query.set('fpo_id', fpoId);
+    if (userId) query.set('user_id', userId);
+    const qs = query.toString();
+    const url = qs ? `${API_BASE}/fpo/lots/candidate?${qs}` : `${API_BASE}/fpo/lots/candidate`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to load candidate lots');
     return res.json();
   },
 
-  async checkFpoEligibility({ referenceLotId, selectedLotIds = [] } = {}) {
+  async checkFpoEligibility({ fpoId, userId, referenceLotId, selectedLotIds = [] } = {}) {
     const res = await fetch(`${API_BASE}/fpo/lots/check-eligibility`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        fpo_id: fpoId || null,
+        user_id: userId || null,
         reference_lot_id: referenceLotId || null,
         selected_lot_ids: selectedLotIds,
       }),
@@ -267,12 +287,13 @@ export const api = {
     return res.json();
   },
 
-  async createFpoAggregation({ fpoId, lotIds, description } = {}) {
+  async createFpoAggregation({ fpoId, userId, lotIds, description } = {}) {
     const res = await fetch(`${API_BASE}/fpo/aggregate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         fpo_id: fpoId || undefined,
+        user_id: userId || undefined,
         lot_ids: lotIds,
         description: description || undefined,
       }),
@@ -284,8 +305,14 @@ export const api = {
     return res.json();
   },
 
-  async getFpoAggregatedLots(fpoId) {
-    const url = fpoId ? `${API_BASE}/fpo/lots?fpo_id=${fpoId}` : `${API_BASE}/fpo/lots`;
+  async getFpoAggregatedLots(params = {}) {
+    const fpoId = typeof params === 'string' ? params : params?.fpoId;
+    const userId = typeof params === 'object' ? params?.userId : undefined;
+    const query = new URLSearchParams();
+    if (fpoId) query.set('fpo_id', fpoId);
+    if (userId) query.set('user_id', userId);
+    const qs = query.toString();
+    const url = qs ? `${API_BASE}/fpo/lots?${qs}` : `${API_BASE}/fpo/lots`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to load aggregated lots');
     return res.json();

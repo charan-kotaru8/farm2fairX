@@ -46,7 +46,7 @@ const InputField = ({ label, icon: Icon, required, children, helper }) => (
 
 export default function FarmerProfilePage() {
   const navigate = useNavigate();
-  const { user, profile: authProfile } = useAuth();
+  const { user, profile: authProfile, refreshProfile } = useAuth();
 
   const [form, setForm] = useState({
     full_name: '',
@@ -76,7 +76,7 @@ export default function FarmerProfilePage() {
             district: profileData.district || '',
             state: profileData.state || 'Maharashtra',
             village: profileData.village || '',
-            land_acres: profileData.land_acres || '',
+            land_acres: profileData.land_acres !== null && profileData.land_acres !== undefined ? profileData.land_acres : '',
             primary_crop: profileData.primary_crop || '',
           });
         } else if (authProfile?.full_name) {
@@ -105,9 +105,12 @@ export default function FarmerProfilePage() {
         district: form.district || null,
         state: form.state || 'Maharashtra',
         village: form.village || null,
-        land_acres: form.land_acres ? parseFloat(form.land_acres) : null,
+        land_acres: form.land_acres !== '' ? parseFloat(form.land_acres) : null,
         primary_crop: form.primary_crop || null,
       });
+      if (refreshProfile) {
+        await refreshProfile();
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {

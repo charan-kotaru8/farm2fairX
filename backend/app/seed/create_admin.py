@@ -60,10 +60,24 @@ def provision_admin(email: str, password: str = None, full_name: str = "Admin Us
                 for u in user_list:
                     u_email = getattr(u, "email", None) or (u.get("email") if isinstance(u, dict) else None)
                     if u_email and u_email.lower() == email.lower():
-                        user_id = getattr(u, "id", None) or u.get("id")
+                        user_id = getattr(u, "id", None) or (u.get("id") if isinstance(u, dict) else None)
                         break
             except Exception as lookup_err:
                 print(f"[!] Could not list users: {lookup_err}")
+
+            if user_id and password:
+                try:
+                    sb.auth.admin.update_user_by_id(user_id, {
+                        "password": password,
+                        "email_confirm": True,
+                        "user_metadata": {
+                            "full_name": full_name,
+                            "role": "admin"
+                        }
+                    })
+                    print(f"[+] Updated existing user password and metadata.")
+                except Exception as update_err:
+                    print(f"[!] Warning updating user password: {update_err}")
         else:
             print(f"[!] Auth creation failed: {e}")
 

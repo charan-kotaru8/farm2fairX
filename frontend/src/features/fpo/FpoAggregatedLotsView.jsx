@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import BuyerBadge from '../../components/ui/BuyerBadge';
 import {
@@ -17,6 +18,7 @@ import {
 export default function FpoAggregatedLotsView() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
 
   const [lots, setLots] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +29,10 @@ export default function FpoAggregatedLotsView() {
 
   const loadAggregatedLots = async () => {
     try {
-      const data = await api.getFpoAggregatedLots();
+      const data = await api.getFpoAggregatedLots({
+        userId: user?.id,
+        fpoId: profile?.fpo_id,
+      });
       setLots(data);
       if (data.length > 0 && !expandedLotId) {
         // Automatically expand the first lot to showcase payout splits

@@ -39,9 +39,9 @@ def create_admin_account(email: str, name: str):
 - Optional (if you want a dynamic path later): an **invite-code-gated** admin signup — a code only you know, checked server-side before allowing `role=admin`. Not required for the prototype; manual provisioning is simpler and safer.
 
 **Checklist:**
-- [ ] `admin` removed from public role dropdown
-- [ ] Backend rejects client-supplied `role=admin` on signup regardless of UI
-- [ ] Admin account(s) provisioned via seed script, not the signup form
+- [x] `admin` removed from public role dropdown
+- [x] Backend rejects client-supplied `role=admin` on signup regardless of UI
+- [x] Admin account(s) provisioned via seed script, not the signup form
 
 ---
 
@@ -78,10 +78,10 @@ CREATE TABLE fpo_join_requests (
 - `features/fpo/JoinRequestQueue.jsx` — reuse `VerificationQueueCard` component with different data source
 
 **Checklist:**
-- [ ] Farmer can search/browse FPOs and send a join request
-- [ ] FPO manager sees a request queue and can approve/reject
-- [ ] Approval creates a real `fpo_members` row; rejection is recorded with a reason
-- [ ] Notification fires to the farmer on resolution
+- [x] Farmer can search/browse FPOs and send a join request
+- [x] FPO manager sees a request queue and can approve/reject
+- [x] Approval creates a real `fpo_members` row; rejection is recorded with a reason
+- [x] Notification fires to the farmer on resolution
 
 ---
 
@@ -97,9 +97,9 @@ CREATE TABLE fpo_join_requests (
 4. Farmer files grievance → appears in admin triage → admin resolves → farmer sees resolved status + can rate satisfaction.
 
 **Checklist:**
-- [ ] All 4 loops above tested manually, start to finish, on the actual deployed environment (not just localhost)
-- [ ] Notifications confirmed firing on both sides of every cross-role action
-- [ ] No stale-data cases found (e.g., a badge/status that updates in one view but not another)
+- [x] All 4 loops above tested manually, start to finish, on the actual deployed environment (not just localhost)
+- [x] Notifications confirmed firing on both sides of every cross-role action
+- [x] No stale-data cases found (e.g., a badge/status that updates in one view but not another)
 
 ---
 

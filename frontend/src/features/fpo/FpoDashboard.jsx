@@ -1,17 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import { Users, Layers, TrendingUp, ShieldCheck, ArrowRight, CheckCircle2, Sparkles, AlertCircle } from 'lucide-react';
 
 export default function FpoDashboard() {
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadStats() {
       try {
-        const data = await api.getFpoDashboardStats();
+        const data = await api.getFpoDashboardStats({
+          userId: user?.id,
+          fpoId: profile?.fpo_id,
+        });
         setStats(data);
       } catch (err) {
         console.error('Failed to load FPO stats:', err);
@@ -20,7 +25,7 @@ export default function FpoDashboard() {
       }
     }
     loadStats();
-  }, []);
+  }, [user, profile]);
 
   if (loading) {
     return (
@@ -35,7 +40,14 @@ export default function FpoDashboard() {
     );
   }
 
-  const fpo = stats?.fpo || {};
+  const fpo = stats?.fpo || {
+    name: profile?.full_name || 'Farmer Producer Co.',
+    district: profile?.district || 'Maharashtra',
+    state: 'Maharashtra',
+  };
+
+  const fpoDisplayName = fpo.name || profile?.full_name || 'Farmer Producer Collective';
+  const regNumber = fpo.registration_number || (fpo.id && fpo.id.length > 8 ? `FPO-MH-${fpo.id.slice(0, 8).toUpperCase()}` : 'FPO-MH-2026-REGISTERED');
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -48,10 +60,10 @@ export default function FpoDashboard() {
               <span className="bg-amber-400/20 text-amber-200 border border-amber-400/30 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">
                 FPO Aggregation Portal • {fpo.district || 'Latur'}, {fpo.state || 'Maharashtra'}
               </span>
-              <span className="text-xs text-amber-200/80">Reg: {fpo.registration_number || 'FPO-MH-2023-0891'}</span>
+              <span className="text-xs text-amber-200/80">Reg: {regNumber}</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-heading font-black tracking-tight text-amber-50">
-              {fpo.name || 'Kisan Vikas Farmer Producer Co.'}
+              {fpoDisplayName}
             </h1>
             <p className="text-amber-100/80 mt-2 max-w-2xl text-sm md:text-base">
               Harness collective bargaining power. Pool small member harvests into high-value commercial bulk lots,

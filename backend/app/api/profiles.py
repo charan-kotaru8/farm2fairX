@@ -35,15 +35,15 @@ class ProfileUpdate(BaseModel):
 def get_profile(user_id: str):
     """Get a user's profile by their Supabase auth user_id."""
     sb = get_supabase_admin()
-    res = sb.table("profiles").select("*").eq("id", user_id).maybeSingle().execute()
-    if not res.data:
+    res = sb.table("profiles").select("*").eq("id", user_id).limit(1).execute()
+    if not res.data or len(res.data) == 0:
         raise HTTPException(status_code=404, detail="Profile not found")
-    return res.data
+    return res.data[0]
 
 
 @router.patch("/profiles/{user_id}")
 def update_profile(user_id: str, updates: ProfileUpdate):
-    """Update a user's profile fields."""
+    """Update a user's profile fields, creating the profile record if missing."""
     sb = get_supabase_admin()
 
     update_data = {k: v for k, v in updates.model_dump().items() if v is not None}
@@ -52,9 +52,18 @@ def update_profile(user_id: str, updates: ProfileUpdate):
 
     update_data["updated_at"] = datetime.utcnow().isoformat()
 
-    res = sb.table("profiles").update(update_data).eq("id", user_id).execute()
-    if not res.data:
-        raise HTTPException(status_code=404, detail="Profile not found or no changes made")
+    # Check if profile exists
+    check_res = sb.table("profiles").select("id").eq("id", user_id).limit(1).execute()
+    if check_res.data and len(check_res.data) > 0:
+        res = sb.table("profiles").update(update_data).eq("id", user_id).execute()
+    else:
+        # Profile doesn't exist yet, insert new profile
+        update_data["id"] = user_id
+        update_data["role"] = "farmer"
+        res = sb.table("profiles").insert(update_data).execute()
+
+    if not res.data or len(res.data) == 0:
+        raise HTTPException(status_code=400, detail="Failed to save profile changes")
     return res.data[0]
 
 

@@ -43,6 +43,34 @@ export const AuthProvider = ({ children }) => {
         .maybeSingle();
 
       if (data) {
+        // If FPO role, ensure fpos table record is linked
+        if (data.role === 'fpo' && !data.fpo_id) {
+          try {
+            const { data: existingFpo } = await supabase.from('fpos').select('id').eq('profile_id', currentUser.id).maybeSingle();
+            if (existingFpo) {
+              data.fpo_id = existingFpo.id;
+              await supabase.from('profiles').update({ fpo_id: existingFpo.id }).eq('id', currentUser.id);
+            } else {
+              const fpoName = data.full_name?.toLowerCase().includes('fpo') || data.full_name?.toLowerCase().includes('producer')
+                ? data.full_name
+                : `${data.full_name || 'Farmer'} Farmer Producer Co.`;
+              const { data: newFpo } = await supabase.from('fpos').insert({
+                name: fpoName,
+                district: data.district || 'Latur',
+                state: 'Maharashtra',
+                contact_person: data.full_name || 'FPO Manager',
+                profile_id: currentUser.id,
+                total_members: 0,
+              }).select().single();
+              if (newFpo) {
+                data.fpo_id = newFpo.id;
+                await supabase.from('profiles').update({ fpo_id: newFpo.id }).eq('id', currentUser.id);
+              }
+            }
+          } catch (fpoErr) {
+            console.warn('FPO link error in fetchProfile:', fpoErr);
+          }
+        }
         setProfile(data);
       } else {
         const userRole = currentUser.user_metadata?.role || 'farmer';
@@ -92,10 +120,33 @@ export const AuthProvider = ({ children }) => {
     if (error) throw error;
 
     if (data.user) {
+      let fpoId = null;
+      if (sanitizedRole === 'fpo') {
+        const fpoName = fullName.toLowerCase().includes('fpo') || fullName.toLowerCase().includes('producer') || fullName.toLowerCase().includes('cooperative')
+          ? fullName
+          : `${fullName} Farmer Producer Co.`;
+        try {
+          const { data: fpoData } = await supabase.from('fpos').insert({
+            name: fpoName,
+            district: 'Latur',
+            state: 'Maharashtra',
+            contact_person: fullName,
+            profile_id: data.user.id,
+            total_members: 0,
+          }).select().single();
+          if (fpoData) {
+            fpoId = fpoData.id;
+          }
+        } catch (e) {
+          console.warn('FPO table insert on signup fallback:', e);
+        }
+      }
+
       await supabase.from('profiles').upsert({
         id: data.user.id,
         full_name: fullName,
         role: sanitizedRole,
+        fpo_id: fpoId,
         updated_at: new Date().toISOString(),
       });
     }
@@ -126,8 +177,14 @@ export const AuthProvider = ({ children }) => {
     setSession(null);
   };
 
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchProfile(user);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, login, signup, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, session, profile, setProfile, refreshProfile, loading, login, signup, loginWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );

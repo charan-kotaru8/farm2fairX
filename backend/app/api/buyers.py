@@ -62,13 +62,13 @@ def list_buyers(
 def get_buyer(buyer_id: str):
     """Get single buyer details and live tier evaluation."""
     sb = get_supabase_admin()
-    res = sb.table("buyers").select("*").eq("id", buyer_id).maybe_single().execute()
-    if not res.data:
+    res = sb.table("buyers").select("*").eq("id", buyer_id).limit(1).execute()
+    if not res.data or len(res.data) == 0:
         raise HTTPException(status_code=404, detail="Buyer not found")
     
     tier_info = recompute_verification_tier(buyer_id)
     return {
-        "buyer": res.data,
+        "buyer": res.data[0],
         "tier_computation": tier_info
     }
 
@@ -98,8 +98,8 @@ def verify_buyer(buyer_id: str, action: AdminVerifyRequest):
     sb = get_supabase_admin()
     
     # Check buyer exists
-    b_res = sb.table("buyers").select("id").eq("id", buyer_id).maybe_single().execute()
-    if not b_res.data:
+    b_res = sb.table("buyers").select("id").eq("id", buyer_id).limit(1).execute()
+    if not b_res.data or len(b_res.data) == 0:
         raise HTTPException(status_code=404, detail="Buyer not found")
         
     update_data = {
@@ -117,8 +117,8 @@ def verify_buyer(buyer_id: str, action: AdminVerifyRequest):
     tier_result = recompute_verification_tier(buyer_id)
     
     # Return updated buyer
-    fresh_buyer = sb.table("buyers").select("*").eq("id", buyer_id).single().execute()
-    buyer_row = fresh_buyer.data or {}
+    fresh_buyer = sb.table("buyers").select("*").eq("id", buyer_id).limit(1).execute()
+    buyer_row = fresh_buyer.data[0] if fresh_buyer.data and len(fresh_buyer.data) > 0 else {}
 
     # Cross-role notification: Notify buyer of KYC verification update
     buyer_profile_id = buyer_row.get("profile_id")

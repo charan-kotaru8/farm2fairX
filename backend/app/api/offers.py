@@ -57,11 +57,11 @@ def submit_offer(offer: OfferCreate):
     sb = get_supabase_admin()
     
     # 1. Check buyer verification tier
-    b_res = sb.table("buyers").select("verification_tier, verification_status, business_name").eq("id", offer.buyer_id).maybe_single().execute()
-    if not b_res.data:
+    b_res = sb.table("buyers").select("verification_tier, verification_status, business_name").eq("id", offer.buyer_id).limit(1).execute()
+    if not b_res.data or len(b_res.data) == 0:
         raise HTTPException(status_code=404, detail="Buyer not found")
         
-    buyer = b_res.data
+    buyer = b_res.data[0]
     if buyer.get("verification_status") != "approved":
         raise HTTPException(
             status_code=403, 
@@ -69,11 +69,11 @@ def submit_offer(offer: OfferCreate):
         )
         
     # 2. Check lot exists and is open for offers
-    lot_res = sb.table("lots").select("status").eq("id", offer.lot_id).maybe_single().execute()
-    if not lot_res.data:
+    lot_res = sb.table("lots").select("status").eq("id", offer.lot_id).limit(1).execute()
+    if not lot_res.data or len(lot_res.data) == 0:
         raise HTTPException(status_code=404, detail="Lot not found")
         
-    if lot_res.data.get("status") in ["offer_accepted", "completed"]:
+    if lot_res.data[0].get("status") in ["offer_accepted", "completed"]:
         raise HTTPException(status_code=400, detail="This lot has already accepted an offer.")
 
     # 3. Create offer
@@ -92,13 +92,14 @@ def submit_offer(offer: OfferCreate):
 
     # 5. Notify farmer of the new offer
     try:
-        lot_farmer = sb.table("lots").select("farmer_id, crops(name)").eq("id", offer.lot_id).maybe_single().execute().data
+        lot_farmer_res = sb.table("lots").select("farmer_id, crops(name)").eq("id", offer.lot_id).limit(1).execute()
+        lot_farmer = lot_farmer_res.data[0] if lot_farmer_res.data and len(lot_farmer_res.data) > 0 else None
         farmer_id = lot_farmer.get("farmer_id") if lot_farmer else None
         crop_info = (lot_farmer.get("crops") or {}).get("name", "produce") if lot_farmer else "produce"
 
         if farmer_id:
             p_chk = sb.table("profiles").select("id").eq("id", farmer_id).execute()
-            if p_chk.data:
+            if p_chk.data and len(p_chk.data) > 0:
                 sb.table("notifications").insert({
                     "user_id": farmer_id,
                     "title": f"New Offer: ₹{offer.price_per_quintal}/q",
@@ -127,11 +128,11 @@ def accept_offer(offer_id: str):
     sb = get_supabase_admin()
     
     # Fetch offer
-    o_res = sb.table("buyer_offers").select("*").eq("id", offer_id).maybe_single().execute()
-    if not o_res.data:
+    o_res = sb.table("buyer_offers").select("*").eq("id", offer_id).limit(1).execute()
+    if not o_res.data or len(o_res.data) == 0:
         raise HTTPException(status_code=404, detail="Offer not found")
         
-    offer = o_res.data
+    offer = o_res.data[0]
     lot_id = offer["lot_id"]
     buyer_id = offer["buyer_id"]
     
@@ -148,7 +149,7 @@ def accept_offer(offer_id: str):
     }).eq("id", lot_id).execute()
     
     # 3. Reject all other submitted offers for this lot
-    other_offers = sb.table("buyer_offers").select("id").eq("lot_id", lot_id).neq("id", offer_id).eq("status", "submitted").execute().data
+    other_offers = sb.table("buyer_offers").select("id").eq("lot_id", lot_id).neq("id", offer_id).eq("status", "submitted").execute().data or []
     for other in other_offers:
         sb.table("buyer_offers").update({
             "status": "rejected",
@@ -157,14 +158,16 @@ def accept_offer(offer_id: str):
         }).eq("id", other["id"]).execute()
         
     # 4. Update buyer completed transactions counter and recompute tier
-    buyer_row = sb.table("buyers").select("completed_transactions").eq("id", buyer_id).single().execute().data
+    buyer_row_res = sb.table("buyers").select("completed_transactions").eq("id", buyer_id).limit(1).execute()
+    buyer_row = buyer_row_res.data[0] if buyer_row_res.data and len(buyer_row_res.data) > 0 else {}
     new_tx_count = (buyer_row.get("completed_transactions") or 0) + 1
     sb.table("buyers").update({"completed_transactions": new_tx_count}).eq("id", buyer_id).execute()
     
     tier_info = recompute_verification_tier(buyer_id)
 
     # 5. If aggregated lot, calculate and update member payout shares in escrow
-    lot_data = sb.table("lots").select("is_aggregated, quantity").eq("id", lot_id).maybe_single().execute().data or {}
+    lot_data_res = sb.table("lots").select("is_aggregated, quantity").eq("id", lot_id).limit(1).execute()
+    lot_data = lot_data_res.data[0] if lot_data_res.data and len(lot_data_res.data) > 0 else {}
     fpo_updated = False
     if lot_data.get("is_aggregated"):
         tx_members = sb.table("fpo_transaction_members").select("*").eq("lot_id", lot_id).execute().data or []
@@ -182,11 +185,12 @@ def accept_offer(offer_id: str):
 
     # 6. Cross-role notification: Notify accepted buyer
     try:
-        buyer_info = sb.table("buyers").select("profile_id, business_name").eq("id", buyer_id).maybe_single().execute().data
-        buyer_profile_id = buyer_info.get("profile_id") if buyer_info else None
+        buyer_info_res = sb.table("buyers").select("profile_id, business_name").eq("id", buyer_id).limit(1).execute()
+        buyer_info = buyer_info_res.data[0] if buyer_info_res.data and len(buyer_info_res.data) > 0 else {}
+        buyer_profile_id = buyer_info.get("profile_id")
         if buyer_profile_id:
             p_chk = sb.table("profiles").select("id").eq("id", buyer_profile_id).execute()
-            if p_chk.data:
+            if p_chk.data and len(p_chk.data) > 0:
                 sb.table("notifications").insert({
                     "user_id": buyer_profile_id,
                     "title": f"Offer Accepted! (₹{offer['price_per_quintal']}/q)",
@@ -202,14 +206,16 @@ def accept_offer(offer_id: str):
     # 7. Notify competing buyers of closure
     try:
         for other in other_offers:
-            other_data = sb.table("buyer_offers").select("buyer_id, price_per_quintal").eq("id", other["id"]).maybe_single().execute().data
+            other_data_res = sb.table("buyer_offers").select("buyer_id, price_per_quintal").eq("id", other["id"]).limit(1).execute()
+            other_data = other_data_res.data[0] if other_data_res.data and len(other_data_res.data) > 0 else {}
             if other_data:
                 comp_buyer_id = other_data.get("buyer_id")
-                comp_buyer_info = sb.table("buyers").select("profile_id").eq("id", comp_buyer_id).maybe_single().execute().data
-                comp_profile_id = comp_buyer_info.get("profile_id") if comp_buyer_info else None
+                comp_buyer_info_res = sb.table("buyers").select("profile_id").eq("id", comp_buyer_id).limit(1).execute()
+                comp_buyer_info = comp_buyer_info_res.data[0] if comp_buyer_info_res.data and len(comp_buyer_info_res.data) > 0 else {}
+                comp_profile_id = comp_buyer_info.get("profile_id")
                 if comp_profile_id:
                     p_chk = sb.table("profiles").select("id").eq("id", comp_profile_id).execute()
-                    if p_chk.data:
+                    if p_chk.data and len(p_chk.data) > 0:
                         sb.table("notifications").insert({
                             "user_id": comp_profile_id,
                             "title": "Offer Not Selected",
@@ -237,9 +243,11 @@ def reject_offer(offer_id: str, req: OfferRejectRequest):
     """Farmer rejects an offer gracefully with reason."""
     sb = get_supabase_admin()
     
-    existing_offer = sb.table("buyer_offers").select("buyer_id, price_per_quintal, lot_id").eq("id", offer_id).maybe_single().execute().data
-    if not existing_offer:
+    existing_offer_res = sb.table("buyer_offers").select("buyer_id, price_per_quintal, lot_id").eq("id", offer_id).limit(1).execute()
+    if not existing_offer_res.data or len(existing_offer_res.data) == 0:
         raise HTTPException(status_code=404, detail="Offer not found")
+
+    existing_offer = existing_offer_res.data[0]
 
     res = sb.table("buyer_offers").update({
         "status": "rejected",
@@ -254,11 +262,12 @@ def reject_offer(offer_id: str, req: OfferRejectRequest):
     buyer_id = existing_offer.get("buyer_id")
     if buyer_id:
         try:
-            buyer_info = sb.table("buyers").select("profile_id").eq("id", buyer_id).maybe_single().execute().data
-            buyer_profile_id = buyer_info.get("profile_id") if buyer_info else None
+            buyer_info_res = sb.table("buyers").select("profile_id").eq("id", buyer_id).limit(1).execute()
+            buyer_info = buyer_info_res.data[0] if buyer_info_res.data and len(buyer_info_res.data) > 0 else {}
+            buyer_profile_id = buyer_info.get("profile_id")
             if buyer_profile_id:
                 p_chk = sb.table("profiles").select("id").eq("id", buyer_profile_id).execute()
-                if p_chk.data:
+                if p_chk.data and len(p_chk.data) > 0:
                     sb.table("notifications").insert({
                         "user_id": buyer_profile_id,
                         "title": "Offer Declined by Farmer",
