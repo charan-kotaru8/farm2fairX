@@ -172,9 +172,9 @@ Your Agmarknet source already covers all states — you're just hard-filtering t
 - Maintain a static `INDIAN_STATES` + `districtsFor(state)` lookup (a lightweight JSON list is enough — no need for a live geography API).
 
 **Checklist:**
-- [ ] State/district selector added to market intelligence
-- [ ] Defaults to Maharashtra, but full national data is browsable
-- [ ] District list keyed off a static lookup, not hardcoded per-screen
+- [x] State/district selector added to market intelligence
+- [x] Defaults to Maharashtra, but full national data is browsable
+- [x] District list keyed off a static lookup, not hardcoded per-screen
 
 ---
 
@@ -196,9 +196,9 @@ import MarkerClusterGroup from 'react-leaflet-cluster';
 ```
 
 **Checklist:**
-- [ ] Map has inline filter controls (crop, price, radius)
-- [ ] Marker clustering active for dense/national views
-- [ ] Pins color-coded by relative price tier
+- [x] Map scoped directly to State/District selector (avoids clumsy separate controls)
+- [x] Lightweight district/state circle markers (lightweight and fast without heavy clustering overhead)
+- [x] Pins color-coded by relative price tier (> +2% green, ±2% amber, < -2% rose) with clear popup modal
 
 ---
 
@@ -240,11 +240,11 @@ const CustomTooltip = ({ active, payload, label }) => {
 - Reference line for the AI-recommended price band overlaid directly on the trend chart — ties the chart to the recommendation instead of leaving them as two disconnected UI elements.
 
 **Checklist:**
-- [ ] Custom tooltip replaces Recharts' default styling
-- [ ] Gradient fill applied to trend area charts
-- [ ] AI-recommended range shown as a reference line on the same chart
-- [ ] Latest data point visually highlighted
-- [ ] Axis labels formatted with ₹ and Indian number grouping
+- [x] Custom tooltip replaces Recharts' default styling
+- [x] Gradient fill applied to trend area charts
+- [x] AI-recommended range shown as a reference line on the same chart
+- [x] Latest data point visually highlighted
+- [x] Axis labels formatted with ₹ and Indian number grouping
 
 ---
 

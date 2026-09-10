@@ -1,17 +1,15 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate, NavLink, Navigate } from 'react-router-dom';
-import { Bell, LogOut, User, Compass, Loader2, UserCircle } from 'lucide-react';
+import { Bell, LogOut, User, Loader2, UserCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import NotificationCenter from '../components/ui/NotificationCenter';
 import LanguageSelector from '../components/ui/LanguageSelector';
-import GuidedDemoOverlay from '../components/ui/GuidedDemoOverlay';
 
 export default function DashboardLayout({ role }) {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { user, profile, loading, logout } = useAuth();
-  const [showGuidedTour, setShowGuidedTour] = useState(false);
   const isDemoMode = import.meta.env.VITE_DEMO_MODE !== 'false';
 
   const handleLogout = async () => {
@@ -97,6 +95,9 @@ export default function DashboardLayout({ role }) {
               <NavLink to="/buyer/verification" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
                 <span className="text-lg w-6 text-center">🛡️</span> {t('nav.verification')}
               </NavLink>
+              <NavLink to="/buyer/profile" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
+                <span className="text-lg w-6 text-center">👤</span> My Profile
+              </NavLink>
             </>
           )}
           {role === 'admin' && (
@@ -110,9 +111,7 @@ export default function DashboardLayout({ role }) {
               <NavLink to="/admin/grievances" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
                 <span className="text-lg w-6 text-center">⚖️</span> {t('nav.grievances')}
               </NavLink>
-              <NavLink to="/admin/markets" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
-                <span className="text-lg w-6 text-center">📈</span> {t('nav.marketPrices')}
-              </NavLink>
+
               <NavLink to="/admin/transactions" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
                 <span className="text-lg w-6 text-center">🔍</span> {t('nav.transactions')}
               </NavLink>
@@ -134,6 +133,9 @@ export default function DashboardLayout({ role }) {
               </NavLink>
               <NavLink to="/fpo/lots" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
                 <span className="text-lg w-6 text-center">📦</span> {t('nav.myLots')}
+              </NavLink>
+              <NavLink to="/fpo/profile" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
+                <span className="text-lg w-6 text-center">👤</span> FPO Profile
               </NavLink>
             </>
           )}
@@ -182,16 +184,6 @@ export default function DashboardLayout({ role }) {
             )}
           </div>
           <div className="flex items-center gap-3">
-            {/* Guided Demo Tour Trigger (§8.6) */}
-            <button
-              onClick={() => setShowGuidedTour(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-colors shadow-xs"
-              title="Launch Guided Demo Walkthrough for Judges"
-              id="guided-tour-trigger-btn"
-            >
-              <Compass className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{t('common.guidedTour')}</span>
-            </button>
 
             {/* Quick switcher in topbar */}
             {isDemoMode && (
@@ -206,7 +198,7 @@ export default function DashboardLayout({ role }) {
 
             <LanguageSelector />
             <NotificationCenter role={role} />
-            <button onClick={() => navigate(role === 'farmer' ? '/farmer/profile' : '#')} className="p-2 text-muted-foreground hover:text-foreground flex items-center gap-2" title="My Profile">
+            <button onClick={() => navigate(`/${role}/profile`)} className="p-2 text-muted-foreground hover:text-foreground flex items-center gap-2" title="My Profile">
               <UserCircle className="w-5 h-5" />
             </button>
             <button onClick={handleLogout} className="p-2 text-danger hover:text-danger/80">
@@ -219,11 +211,6 @@ export default function DashboardLayout({ role }) {
           <Outlet />
         </div>
 
-        {/* Guided Demo Mode Overlay (§8.6) */}
-        <GuidedDemoOverlay 
-          isOpen={showGuidedTour} 
-          onClose={() => setShowGuidedTour(false)} 
-        />
       </main>
     </div>
   );

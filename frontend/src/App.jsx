@@ -16,11 +16,12 @@ import FarmerProfilePage from './features/farmer-dashboard/FarmerProfilePage';
 import BuyerDashboard from './features/buyer-marketplace/BuyerDashboard';
 import BuyerMarketplace from './features/buyer-marketplace/BuyerMarketplace';
 import BuyerVerificationStatus from './features/buyer-marketplace/BuyerVerificationStatus';
+import BuyerProfilePage from './features/buyer-marketplace/BuyerProfilePage';
 // Admin (Phase 7 Refined)
 import AdminDashboard from './features/admin/AdminDashboard';
 import BuyerVerificationQueue from './features/admin/BuyerVerificationQueue';
 import GrievanceTriageView from './features/admin/GrievanceTriageView';
-import MarketPriceEditor from './features/admin/MarketPriceEditor';
+
 import TransactionMonitoringView from './features/admin/TransactionMonitoringView';
 // FPO (Phase 5)
 import FpoDashboard from './features/fpo/FpoDashboard';
@@ -29,6 +30,7 @@ import AggregationFlow from './features/fpo/AggregationFlow';
 import FpoAggregatedLotsView from './features/fpo/FpoAggregatedLotsView';
 import DiscoverFpos from './features/fpo/DiscoverFpos';
 import JoinRequestQueue from './features/fpo/JoinRequestQueue';
+import FPOProfilePage from './features/fpo/FPOProfilePage';
 // Logistics & Storage (Phase 6)
 import TransportBookingView from './features/logistics/TransportBookingView';
 import StorageFacilitiesView from './features/storage/StorageFacilitiesView';
@@ -66,6 +68,7 @@ function App() {
             <Route path="marketplace" element={<BuyerMarketplace />} />
             <Route path="logistics" element={<TransportBookingView userRole="buyer" />} />
             <Route path="verification" element={<BuyerVerificationStatus />} />
+            <Route path="profile" element={<BuyerProfilePage />} />
           </Route>
 
           {/* Admin Routes */}
@@ -74,7 +77,7 @@ function App() {
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="verifications" element={<BuyerVerificationQueue />} />
             <Route path="grievances" element={<GrievanceTriageView />} />
-            <Route path="markets" element={<MarketPriceEditor />} />
+
             <Route path="transactions" element={<TransactionMonitoringView />} />
           </Route>
 
@@ -86,6 +89,7 @@ function App() {
             <Route path="join-requests" element={<JoinRequestQueue />} />
             <Route path="aggregate" element={<AggregationFlow />} />
             <Route path="lots" element={<FpoAggregatedLotsView />} />
+            <Route path="profile" element={<FPOProfilePage />} />
           </Route>
 
           {/* Backwards compatibility redirects */}

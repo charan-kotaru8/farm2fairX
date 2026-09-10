@@ -70,7 +70,7 @@ const resources = {
       },
       farmer: {
         welcome: 'Welcome back, Ramesh!',
-        location: 'Latur District, Maharashtra',
+        location: 'Maharashtra',
         cumulativeBenefit: 'Cumulative Farmer Benefit',
         activeLots: 'Active Lots',
         currentlyListed: 'Currently listed on market',
@@ -219,7 +219,7 @@ const resources = {
       },
       farmer: {
         welcome: 'स्वागत है, रमेश जी!',
-        location: 'लातूर जिला, महाराष्ट्र',
+        location: 'महाराष्ट्र',
         cumulativeBenefit: 'किसानों का संचयी लाभ',
         activeLots: 'सक्रिय फसलें (लॉट्स)',
         currentlyListed: 'मंडी में वर्तमान में सूचीबद्ध',
@@ -368,7 +368,7 @@ const resources = {
       },
       farmer: {
         welcome: 'स्वागत आहे, रमेशराव!',
-        location: 'लातूर जिल्हा, महाराष्ट्र',
+        location: 'महाराष्ट्र',
         cumulativeBenefit: 'शेतकऱ्यांना मिळालेला अतिरिक्त नफा',
         activeLots: 'सक्रिय शेतमाल लॉट्स',
         currentlyListed: 'सध्या बाजारात विक्रीसाठी उपलब्ध',

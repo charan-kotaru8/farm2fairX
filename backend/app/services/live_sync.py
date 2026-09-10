@@ -57,6 +57,28 @@ MARKET_NAME_MAPPING: Dict[str, str] = {
     "nagpur": "Nagpur APMC",
     "kolhapur": "Kolhapur APMC",
     "sangli": "Sangli APMC",
+    "bengaluru": "Bengaluru APMC (Yeshwanthpur)",
+    "hubballi": "Hubballi APMC (Amargol)",
+    "kalaburagi": "Kalaburagi APMC",
+    "rajkot": "Rajkot APMC (Bedi)",
+    "surat": "Surat APMC",
+    "unjha": "Unjha APMC",
+    "indore": "Indore APMC (Choithram Mandi)",
+    "neemuch": "Neemuch APMC",
+    "ujjain": "Ujjain APMC",
+    "khanna": "Khanna Grain Market",
+    "jalandhar": "Jalandhar APMC",
+    "kota": "Kota APMC (Bhamashah Mandi)",
+    "jaipur": "Jaipur APMC (Muhana Mandi)",
+    "guntur": "Guntur APMC (Mirchi Yard)",
+    "kurnool": "Kurnool APMC",
+    "warangal": "Warangal APMC (Enumamula)",
+    "nizamabad": "Nizamabad APMC",
+    "koyambedu": "Koyambedu Wholesale Market",
+    "erode": "Erode Turmeric Market",
+    "agra": "Agra APMC",
+    "kanpur": "Kanpur APMC (Naubasta Mandi)",
+    "karnal": "Karnal Grain Market",
 }
 
 
@@ -111,23 +133,51 @@ def match_market_name(market: str, district: str) -> Optional[str]:
     return None
 
 
-def fetch_agmarknet_live() -> Optional[List[Dict[str, Any]]]:
-    """
-    Attempts to pull live records from data.gov.in with a short timeout.
-    Returns None if the network fails or times out.
-    """
-    url = f"{AGMARKNET_ENDPOINT}?api-key={AGMARKNET_API_KEY}&format=json&filters[state]=Maharashtra&limit=250"
+def parse_arrival_date(date_str: Optional[str]) -> str:
+    """Parses DD/MM/YYYY into YYYY-MM-DD ISO format."""
+    if not date_str:
+        return datetime.utcnow().date().isoformat()
     try:
-        with httpx.Client(timeout=4.0) as client:
-            resp = client.get(url)
-            if resp.status_code == 200:
+        parts = date_str.strip().replace("\\", "").split("/")
+        if len(parts) == 3:
+            day, month, year = int(parts[0]), int(parts[1]), int(parts[2])
+            return f"{year:04d}-{month:02d}-{day:02d}"
+    except Exception:
+        pass
+    return datetime.utcnow().date().isoformat()
+
+
+def fetch_agmarknet_live(state: Optional[str] = None, max_pages: int = 5) -> Optional[List[Dict[str, Any]]]:
+    """
+    Attempts to pull live records from data.gov.in in paginated passes (§2 Plan v3.1).
+    Returns None if network fails or times out.
+    """
+    state_filter = f"&filters[state]={state}" if state else ""
+    limit = 1000
+    offset = 0
+    all_records = []
+
+    try:
+        with httpx.Client(timeout=8.0) as client:
+            for page in range(max_pages):
+                url = f"{AGMARKNET_ENDPOINT}?api-key={AGMARKNET_API_KEY}&format=json{state_filter}&limit={limit}&offset={offset}"
+                resp = client.get(url)
+                if resp.status_code != 200:
+                    break
                 data = resp.json()
                 records = data.get("records", [])
-                if records:
-                    return records
+                if not records:
+                    break
+                all_records.extend(records)
+                total = int(data.get("total", 0))
+                offset += limit
+                if offset >= total:
+                    break
+        if all_records:
+            return all_records
     except Exception as e:
-        logger.warning(f"Live Agmarknet pull failed or timed out: {e}")
-    return None
+        logger.warning(f"Live Agmarknet paginated pull failed or timed out: {e}")
+    return all_records if all_records else None
 
 
 def load_cached_records() -> List[Dict[str, Any]]:
@@ -142,10 +192,10 @@ def load_cached_records() -> List[Dict[str, Any]]:
     return []
 
 
-def run_live_sync(force_live: bool = False) -> Dict[str, Any]:
+def run_live_sync(force_live: bool = False, state: Optional[str] = None) -> Dict[str, Any]:
     """
     Executes defensive live sync:
-    1. If force_live, attempts data.gov.in fetch.
+    1. If force_live, attempts data.gov.in fetch (national or state-filtered).
     2. Falls back to cached records if live fetch returns zero records.
     3. Resolves crop names via mapping table and matches APMC markets.
     4. Upserts into market_prices table.
@@ -156,7 +206,7 @@ def run_live_sync(force_live: bool = False) -> Dict[str, Any]:
     is_fallback = False
 
     if force_live:
-        records = fetch_agmarknet_live()
+        records = fetch_agmarknet_live(state=state)
 
     if not records:
         records = load_cached_records()
@@ -202,7 +252,7 @@ def run_live_sync(force_live: bool = False) -> Dict[str, Any]:
         upsert_rows.append({
             "crop_id": crop_id,
             "market_id": market_id,
-            "date": today_str,
+            "date": parse_arrival_date(item.get("arrival_date")),
             "modal_price": round(modal, 2),
             "min_price": round(min_p, 2),
             "max_price": round(max_p, 2),

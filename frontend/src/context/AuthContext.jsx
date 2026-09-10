@@ -7,6 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [roleData, setRoleData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,6 +28,7 @@ export const AuthProvider = ({ children }) => {
         fetchProfile(session.user);
       } else {
         setProfile(null);
+        setRoleData(null);
         setLoading(false);
       }
     });
@@ -36,34 +38,57 @@ export const AuthProvider = ({ children }) => {
 
   const fetchProfile = async (currentUser) => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', currentUser.id)
-        .maybeSingle();
+      // Try the enriched endpoint first
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      let profileData = null;
+      let fetchedRoleData = null;
 
-      if (data) {
+      try {
+        const res = await fetch(`${API_BASE}/profiles/${currentUser.id}`);
+        if (res.ok) {
+          const json = await res.json();
+          // Handle enriched response {profile, role_data}
+          if (json.profile) {
+            profileData = json.profile;
+            fetchedRoleData = json.role_data;
+          } else {
+            // Fallback: old flat response
+            profileData = json;
+          }
+        }
+      } catch (_) {
+        // Backend might be down, try direct supabase
+        const { data } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', currentUser.id)
+          .maybeSingle();
+        profileData = data;
+      }
+
+      if (profileData) {
         // If FPO role, ensure fpos table record is linked
-        if (data.role === 'fpo' && !data.fpo_id) {
+        if (profileData.role === 'fpo' && !profileData.fpo_id) {
           try {
             const { data: existingFpo } = await supabase.from('fpos').select('id').eq('profile_id', currentUser.id).maybeSingle();
             if (existingFpo) {
-              data.fpo_id = existingFpo.id;
+              profileData.fpo_id = existingFpo.id;
               await supabase.from('profiles').update({ fpo_id: existingFpo.id }).eq('id', currentUser.id);
             } else {
-              const fpoName = data.full_name?.toLowerCase().includes('fpo') || data.full_name?.toLowerCase().includes('producer')
-                ? data.full_name
-                : `${data.full_name || 'Farmer'} Farmer Producer Co.`;
+              const fpoName = profileData.full_name?.toLowerCase().includes('fpo') || profileData.full_name?.toLowerCase().includes('producer')
+                ? profileData.full_name
+                : `${profileData.full_name || 'Farmer'} Farmer Producer Co.`;
               const { data: newFpo } = await supabase.from('fpos').insert({
                 name: fpoName,
-                district: data.district || 'Latur',
+                district: profileData.district || 'Latur',
                 state: 'Maharashtra',
-                contact_person: data.full_name || 'FPO Manager',
+                contact_person: profileData.full_name || 'FPO Manager',
                 profile_id: currentUser.id,
                 total_members: 0,
               }).select().single();
               if (newFpo) {
-                data.fpo_id = newFpo.id;
+                profileData.fpo_id = newFpo.id;
+                fetchedRoleData = newFpo;
                 await supabase.from('profiles').update({ fpo_id: newFpo.id }).eq('id', currentUser.id);
               }
             }
@@ -71,7 +96,8 @@ export const AuthProvider = ({ children }) => {
             console.warn('FPO link error in fetchProfile:', fpoErr);
           }
         }
-        setProfile(data);
+        setProfile(profileData);
+        setRoleData(fetchedRoleData);
       } else {
         const userRole = currentUser.user_metadata?.role || 'farmer';
         const fullName = currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || currentUser.email?.split('@')[0] || 'Farmer';
@@ -85,6 +111,7 @@ export const AuthProvider = ({ children }) => {
           await supabase.from('profiles').upsert(fallbackProfile);
         } catch (_) {}
         setProfile(fallbackProfile);
+        setRoleData(null);
       }
     } catch (err) {
       console.error('Error fetching profile:', err);
@@ -142,6 +169,21 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
+      // Auto-provision buyer entity on signup
+      if (sanitizedRole === 'buyer') {
+        try {
+          await supabase.from('buyers').insert({
+            business_name: fullName,
+            business_type: 'Trader',
+            profile_id: data.user.id,
+            verification_status: 'pending',
+            verification_tier: 'basic',
+          }).select().single();
+        } catch (e) {
+          console.warn('Buyer table insert on signup fallback:', e);
+        }
+      }
+
       await supabase.from('profiles').upsert({
         id: data.user.id,
         full_name: fullName,
@@ -184,7 +226,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, setProfile, refreshProfile, loading, login, signup, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, session, profile, roleData, setProfile, refreshProfile, loading, login, signup, loginWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );

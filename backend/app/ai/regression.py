@@ -163,3 +163,19 @@ def backtest_check(
             "midpoint": pred["midpoint"],
         },
     }
+
+
+def evaluate_7day_backtest(series: List[float]) -> Dict[str, Any]:
+    """
+    Backtest on a 7-day scale (§7 Plan v3.1):
+    Hides the last 1–2 of 7 synced days (not 3–5 of 30) to evaluate accuracy.
+    """
+    if len(series) < 3:
+        return {"within_band": 0, "total": 0, "accuracy_pct": 0.0, "status": "insufficient_history"}
+    holdout_len = 2 if len(series) >= 6 else 1
+    train = series[:-holdout_len]
+    holdout = series[-holdout_len:]
+    res = backtest_check(train, holdout)
+    res["status"] = "evaluated"
+    res["holdout_days"] = holdout_len
+    return res

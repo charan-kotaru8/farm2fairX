@@ -2,19 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
+import { useMarketsMeta } from '../../hooks/useMarketsMeta';
 import {
   User, MapPin, Phone, Wheat, Ruler, Save, CheckCircle2,
-  AlertCircle, ChevronDown, Loader2, ArrowLeft
+  AlertCircle, ChevronDown, Loader2, ArrowLeft, Globe
 } from 'lucide-react';
-
-const MAHARASHTRA_DISTRICTS = [
-  "Ahmednagar", "Akola", "Amravati", "Aurangabad", "Beed", "Bhandara",
-  "Buldhana", "Chandrapur", "Dhule", "Gadchiroli", "Gondia", "Hingoli",
-  "Jalgaon", "Jalna", "Kolhapur", "Latur", "Mumbai City", "Mumbai Suburban",
-  "Nagpur", "Nanded", "Nandurbar", "Nashik", "Osmanabad", "Palghar",
-  "Parbhani", "Pune", "Raigad", "Ratnagiri", "Sangli", "Satara",
-  "Sindhudurg", "Solapur", "Thane", "Wardha", "Washim", "Yavatmal"
-];
 
 
 const CROPS_LIST = [
@@ -47,12 +39,13 @@ const InputField = ({ label, icon: Icon, required, children, helper }) => (
 export default function FarmerProfilePage() {
   const navigate = useNavigate();
   const { user, profile: authProfile, refreshProfile } = useAuth();
+  const { meta, districtsFor } = useMarketsMeta();
 
   const [form, setForm] = useState({
     full_name: '',
     phone: '',
+    state: meta.states.includes('Maharashtra') ? 'Maharashtra' : (meta.states[0] || 'Maharashtra'),
     district: '',
-    state: 'Maharashtra',
     village: '',
     land_acres: '',
     primary_crop: '',
@@ -68,7 +61,9 @@ export default function FarmerProfilePage() {
     async function init() {
       if (!user?.id) return;
       try {
-        const profileData = await api.getProfile(user.id);
+        const res = await api.getProfile(user.id);
+        // Handle enriched response {profile, role_data}
+        const profileData = res?.profile || res;
         if (profileData) {
           setForm({
             full_name: profileData.full_name || authProfile?.full_name || '',
@@ -205,16 +200,34 @@ export default function FarmerProfilePage() {
 
         <h2 className="text-base font-semibold text-foreground border-b border-border pb-3 pt-2">Farm Location</h2>
 
-        {/* District */}
-        <InputField label="District" icon={MapPin} required helper="Critical for AI market price matching">
+        {/* State */}
+        <InputField label="State" icon={Globe} required helper="Determines which APMC market prices apply to you">
           <div className="relative">
             <select
               className="w-full border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 appearance-none bg-white transition-all"
+              value={form.state}
+              onChange={e => setForm(f => ({ ...f, state: e.target.value, district: '' }))}
+            >
+              <option value="">Select state</option>
+              {meta.states.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-muted-foreground pointer-events-none" />
+          </div>
+        </InputField>
+
+        {/* District — derived from selected state */}
+        <InputField label="District" icon={MapPin} required helper="Critical for AI market price matching">
+          <div className="relative">
+            <select
+              className="w-full border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 appearance-none bg-white transition-all disabled:opacity-50"
               value={form.district}
               onChange={e => setForm(f => ({ ...f, district: e.target.value }))}
+              disabled={!form.state}
             >
-              <option value="">Select your district</option>
-              {MAHARASHTRA_DISTRICTS.map(d => (
+              <option value="">{form.state ? 'Select district' : 'Select state first'}</option>
+              {districtsFor(form.state).map(d => (
                 <option key={d} value={d}>{d}</option>
               ))}
             </select>

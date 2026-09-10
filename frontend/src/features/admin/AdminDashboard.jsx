@@ -299,17 +299,6 @@ export default function AdminDashboard() {
             <div className="text-[11px] text-slate-400 mt-0.5">48h SLA & audit notes</div>
           </button>
 
-          <button
-            onClick={() => navigate('/admin/markets')}
-            className="p-3.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 transition-all text-left group"
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <TrendingUp className="w-5 h-5 text-blue-400" />
-              <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-white transition-colors" />
-            </div>
-            <div className="text-sm font-bold">Market Price Control</div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Live demo device (§7.4)</div>
-          </button>
 
           <button
             onClick={() => navigate('/admin/transactions')}

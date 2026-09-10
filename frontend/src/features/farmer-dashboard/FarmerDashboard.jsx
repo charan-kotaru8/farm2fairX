@@ -44,7 +44,11 @@ export default function FarmerDashboard() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-heading font-bold text-foreground">Welcome back, {farmerName}! 👋</h1>
-          <p className="text-muted-foreground">{t('farmer.location')} • {t('common.liveData')}</p>
+          <p className="text-muted-foreground">
+            {profile?.district
+              ? `${profile.village ? `${profile.village}, ` : ''}${profile.district} District, ${profile.state || 'Maharashtra'}`
+              : (t('farmer.location') || 'Maharashtra')} • {t('common.liveData')}
+          </p>
         </div>
         <Link to="/farmer/create-lot" className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium hover:bg-primary/90 transition-colors shadow-sm inline-flex items-center gap-2">
           <span className="text-lg">➕</span> {t('farmer.createLotCta')}
@@ -69,7 +73,11 @@ export default function FarmerDashboard() {
       )}
 
       {/* Real-Time NASA POWER Weather Indicator */}
-      <RealTimeWeatherCard marketName="Latur APMC" />
+      <RealTimeWeatherCard
+        district={profile?.district}
+        farmerId={farmerId}
+        marketName={profile?.district ? `${profile.district} APMC` : undefined}
+      />
 
 
       {/* Bento Grid */}

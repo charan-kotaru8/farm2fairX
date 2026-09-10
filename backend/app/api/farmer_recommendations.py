@@ -285,11 +285,27 @@ def get_farmer_recommendations(
 
 
 @router.get("/weather/current")
-def get_current_market_weather(market_name: str = Query(default="Latur APMC")):
+def get_current_market_weather(
+    market_name: Optional[str] = None,
+    district: Optional[str] = None,
+    farmer_id: Optional[str] = None,
+):
     """
-    Returns real-time NASA POWER weather condition for the specified APMC market.
+    Returns real-time NASA POWER weather condition for the specified APMC market,
+    district, or farmer's registered location.
     """
+    sb = get_supabase_admin()
+    resolved_district = district
+    resolved_market = market_name
+
+    # If farmer_id provided and district missing, lookup farmer profile
+    if farmer_id and not resolved_district:
+        farmer_profile = sb.table("profiles").select("district").eq("id", farmer_id).limit(1).execute().data
+        if farmer_profile and farmer_profile[0].get("district"):
+            resolved_district = farmer_profile[0]["district"]
+
     from app.services.weather_service import get_market_weather, DEFAULT_WEATHER_BASELINE
-    res = get_market_weather(market_name)
-    return res or {**DEFAULT_WEATHER_BASELINE, "market_name": market_name}
+    res = get_market_weather(market_name=resolved_market, district=resolved_district)
+    target_name = (res and res.get("market_name")) or resolved_market or (f"{resolved_district} APMC" if resolved_district else "Latur APMC")
+    return res or {**DEFAULT_WEATHER_BASELINE, "market_name": target_name}
 

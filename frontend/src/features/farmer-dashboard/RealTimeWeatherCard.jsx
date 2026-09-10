@@ -14,7 +14,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 
-export default function RealTimeWeatherCard({ marketName = 'Latur APMC' }) {
+export default function RealTimeWeatherCard({ marketName, district, farmerId }) {
   const { t } = useTranslation();
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -22,7 +22,7 @@ export default function RealTimeWeatherCard({ marketName = 'Latur APMC' }) {
 
   async function loadWeather() {
     try {
-      const data = await api.getCurrentWeather(marketName);
+      const data = await api.getCurrentWeather({ marketName, district, farmerId });
       if (data) {
         setWeather(data);
       }
@@ -36,7 +36,7 @@ export default function RealTimeWeatherCard({ marketName = 'Latur APMC' }) {
 
   useEffect(() => {
     loadWeather();
-  }, [marketName]);
+  }, [marketName, district, farmerId]);
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -89,7 +89,7 @@ export default function RealTimeWeatherCard({ marketName = 'Latur APMC' }) {
                 {t('farmer.todayWeather') || "Today's Weather Condition"}
               </span>
               <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                <MapPin className="w-3 h-3 text-sky-600" /> {weather.market_name || marketName}
+                <MapPin className="w-3 h-3 text-sky-600" /> {weather.market_name || marketName || (district ? `${district} APMC` : 'Local APMC')}
               </span>
               {riskBadge}
             </div>

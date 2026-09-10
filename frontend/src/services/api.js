@@ -7,9 +7,19 @@ export const api = {
     return res.json();
   },
 
-  async getMarkets(district) {
-    const url = district ? `${API_BASE}/markets?district=${district}` : `${API_BASE}/markets`;
+  async getMarkets(district, state) {
+    const params = new URLSearchParams();
+    if (district) params.set('district', district);
+    if (state) params.set('state', state);
+    const qs = params.toString();
+    const url = qs ? `${API_BASE}/markets?${qs}` : `${API_BASE}/markets`;
     const res = await fetch(url);
+    return res.json();
+  },
+
+  async getMarketsMeta() {
+    const res = await fetch(`${API_BASE}/markets/meta`);
+    if (!res.ok) return { states: [], districts_by_state: {} };
     return res.json();
   },
 
@@ -31,8 +41,48 @@ export const api = {
     return res.json();
   },
 
-  async getMarketComparison(cropId) {
-    const res = await fetch(`${API_BASE}/market-comparison?crop_id=${cropId}`);
+  async getMarketComparison(cropId, { state, district } = {}) {
+    const params = new URLSearchParams();
+    params.set('crop_id', cropId);
+    if (state) params.set('state', state);
+    if (district) params.set('district', district);
+    const res = await fetch(`${API_BASE}/market-comparison?${params}`);
+    return res.json();
+  },
+
+  async getPriceTrend({ state, district, commodity, cropId, marketId, days = 7 } = {}) {
+    const params = new URLSearchParams();
+    if (state) params.set('state', state);
+    if (district) params.set('district', district);
+    if (commodity) params.set('commodity', commodity);
+    if (cropId) params.set('crop_id', cropId);
+    if (marketId) params.set('market_id', marketId);
+    if (days) params.set('days', days);
+    const res = await fetch(`${API_BASE}/markets/price-trend?${params}`);
+    if (!res.ok) return [];
+    return res.json();
+  },
+
+  async getDistinctDistricts(state) {
+    const params = new URLSearchParams();
+    if (state) params.set('state', state);
+    const res = await fetch(`${API_BASE}/markets/districts?${params}`);
+    if (!res.ok) return [];
+    return res.json();
+  },
+
+  async getDistinctCommodities({ state, district } = {}) {
+    const params = new URLSearchParams();
+    if (state) params.set('state', state);
+    if (district) params.set('district', district);
+    const res = await fetch(`${API_BASE}/markets/commodities?${params}`);
+    if (!res.ok) return [];
+    return res.json();
+  },
+
+  async getMarketSyncStatus() {
+    const res = await fetch(`${API_BASE}/markets/sync-status`);
+    if (!res.ok) return null;
     return res.json();
   },
 
@@ -215,8 +265,17 @@ export const api = {
     return res.json();
   },
 
-  async getCurrentWeather(marketName = 'Latur APMC') {
-    const res = await fetch(`${API_BASE}/weather/current?market_name=${encodeURIComponent(marketName)}`);
+  async getCurrentWeather(arg) {
+    const params = new URLSearchParams();
+    if (typeof arg === 'string') {
+      if (arg) params.set('market_name', arg);
+    } else if (arg && typeof arg === 'object') {
+      if (arg.marketName) params.set('market_name', arg.marketName);
+      if (arg.district) params.set('district', arg.district);
+      if (arg.farmerId) params.set('farmer_id', arg.farmerId);
+    }
+    const qs = params.toString();
+    const res = await fetch(`${API_BASE}/weather/current${qs ? `?${qs}` : ''}`);
     if (!res.ok) return null;
     return res.json();
   },

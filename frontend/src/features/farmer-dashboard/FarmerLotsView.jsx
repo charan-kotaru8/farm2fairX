@@ -95,7 +95,7 @@ export default function FarmerLotsView() {
   const { t } = useTranslation();
   const { lotId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const farmerId = user?.id || null;
   const [lots, setLots] = useState([]);
   const [offersMap, setOffersMap] = useState({});
@@ -211,7 +211,11 @@ export default function FarmerLotsView() {
       </div>
 
       {/* Real-Time APMC Weather & Delivery Conditions */}
-      <RealTimeWeatherCard marketName="Latur APMC" />
+      <RealTimeWeatherCard
+        district={profile?.district}
+        farmerId={farmerId}
+        marketName={profile?.district ? `${profile.district} APMC` : undefined}
+      />
 
       {lots.length === 0 ? (
         <div className="bg-white rounded-2xl border border-border p-12 text-center">

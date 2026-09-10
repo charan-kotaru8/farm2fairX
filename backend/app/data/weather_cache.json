@@ -31,5 +31,38 @@
     "description": "Dry conditions (28.0\u00b0C, 0.0 mm rain) support timely logistics.",
     "fetched_at": "2026-09-10T15:40:23.560141",
     "market_name": "Nagpur APMC"
+  },
+  "Amravati APMC": {
+    "temp_c": 28.0,
+    "max_temp_c": 32.5,
+    "rainfall_mm": 0.0,
+    "condition": "Clear / Favorable",
+    "risk": "clear",
+    "source": "NASA POWER (Live Daily)",
+    "description": "Dry conditions (28.0\u00b0C, 0.0 mm rain) support timely logistics.",
+    "fetched_at": "2026-09-10T18:10:07.727044",
+    "market_name": "Amravati APMC"
+  },
+  "Pune Market Yard": {
+    "temp_c": 28.0,
+    "max_temp_c": 32.5,
+    "rainfall_mm": 0.0,
+    "condition": "Clear / Favorable",
+    "risk": "clear",
+    "source": "NASA POWER (Live Daily)",
+    "description": "Dry conditions (28.0\u00b0C, 0.0 mm rain) support timely logistics.",
+    "fetched_at": "2026-09-10T18:13:24.317755",
+    "market_name": "Pune Market Yard"
+  },
+  "Nashik APMC": {
+    "temp_c": 28.0,
+    "max_temp_c": 32.5,
+    "rainfall_mm": 0.0,
+    "condition": "Clear / Favorable",
+    "risk": "clear",
+    "source": "NASA POWER (Live Daily)",
+    "description": "Dry conditions (28.0\u00b0C, 0.0 mm rain) support timely logistics.",
+    "fetched_at": "2026-09-10T18:13:37.605819",
+    "market_name": "Nashik APMC"
   }
 }
