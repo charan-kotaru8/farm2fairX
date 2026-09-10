@@ -65,6 +65,9 @@ export default function DashboardLayout({ role }) {
               <NavLink to="/farmer/profile" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
                 <span className="text-lg w-6 text-center">👤</span> My Profile
               </NavLink>
+              <NavLink to="/farmer/discover-fpo" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
+                <span className="text-lg w-6 text-center">🏛️</span> Join FPO
+              </NavLink>
               <NavLink to="/farmer/logistics" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
                 <span className="text-lg w-6 text-center">🚚</span> {t('nav.logistics')}
               </NavLink>
@@ -115,6 +118,9 @@ export default function DashboardLayout({ role }) {
               </NavLink>
               <NavLink to="/fpo/members" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
                 <span className="text-lg w-6 text-center">👥</span> {t('nav.memberDirectory')}
+              </NavLink>
+              <NavLink to="/fpo/join-requests" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
+                <span className="text-lg w-6 text-center">📝</span> Join Requests
               </NavLink>
               <NavLink to="/fpo/aggregate" className={({isActive}) => `flex items-center gap-2.5 p-2.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground hover:bg-muted'}`}>
                 <span className="text-lg w-6 text-center">🔄</span> {t('nav.aggregateLots')}

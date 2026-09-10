@@ -20,6 +20,24 @@ class EligibilityCheckRequest(BaseModel):
     selected_lot_ids: List[str] = []
 
 
+class FpoJoinRequestCreate(BaseModel):
+    fpo_id: str
+    farmer_id: str
+    farmer_name: str
+    phone: Optional[str] = None
+    village: Optional[str] = None
+    district: Optional[str] = "Latur"
+    primary_crop: Optional[str] = "Soybean"
+    farm_size_acres: Optional[float] = 0.0
+    notes: Optional[str] = None
+
+
+class FpoJoinRequestResolve(BaseModel):
+    status: str  # approved, rejected
+    reviewed_by: Optional[str] = "FPO Admin"
+    review_notes: Optional[str] = None
+
+
 @router.get("/dashboard-stats")
 def get_fpo_dashboard_stats(fpo_id: str = DEFAULT_FPO_ID):
     """
@@ -563,4 +581,227 @@ def get_lot_payout_splits(lot_id: str):
             "total_payout_amount": round(total_shares_amount, 2),
             "shares_sum_percentage": round(total_shares_pct, 2),
         },
+    }
+
+
+# ─── FPO Membership & Join Workflow (§1.2) ───────────────────────────────────
+
+@router.get("/discover")
+def discover_fpos(district: Optional[str] = None, farmer_id: Optional[str] = None):
+    """
+    List registered FPOs for farmers to discover and request to join.
+    Annotates each FPO with current membership or request status if farmer_id is provided.
+    """
+    sb = get_supabase_admin()
+    q = sb.table("fpos").select("*")
+    if district and district != "All":
+        q = q.eq("district", district)
+    fpos = q.order("name").execute().data or []
+
+    # Get farmer's existing requests and memberships if farmer_id given
+    existing_requests = {}
+    existing_memberships = set()
+    if farmer_id:
+        try:
+            reqs = sb.table("fpo_join_requests").select("*").eq("farmer_id", farmer_id).execute().data or []
+            for r in reqs:
+                existing_requests[r["fpo_id"]] = r
+        except Exception:
+            pass
+
+        try:
+            mems = sb.table("fpo_members").select("fpo_id").eq("farmer_id", farmer_id).execute().data or []
+            for m in mems:
+                existing_memberships.add(m["fpo_id"])
+        except Exception:
+            pass
+
+    results = []
+    for f in fpos:
+        f_id = f["id"]
+        is_member = f_id in existing_memberships
+        req = existing_requests.get(f_id)
+        results.append({
+            **f,
+            "is_member": is_member,
+            "request_status": req["status"] if req else None,
+            "request_id": req["id"] if req else None,
+        })
+
+    return results
+
+
+@router.post("/join-request")
+def submit_join_request(req: FpoJoinRequestCreate):
+    """
+    Farmer submits request to join an FPO.
+    """
+    sb = get_supabase_admin()
+
+    # Check if already a member
+    mem_chk = sb.table("fpo_members").select("id").eq("fpo_id", req.fpo_id).eq("farmer_id", req.farmer_id).execute().data
+    if mem_chk:
+        raise HTTPException(status_code=400, detail="You are already a registered member of this FPO.")
+
+    # Check if pending request exists
+    existing = sb.table("fpo_join_requests").select("id, status").eq("fpo_id", req.fpo_id).eq("farmer_id", req.farmer_id).eq("status", "pending").execute().data
+    if existing:
+        raise HTTPException(status_code=400, detail="You already have a pending join request for this FPO.")
+
+    now_iso = datetime.utcnow().isoformat()
+    payload = {
+        "fpo_id": req.fpo_id,
+        "farmer_id": req.farmer_id,
+        "farmer_name": req.farmer_name,
+        "phone": req.phone,
+        "village": req.village,
+        "district": req.district or "Latur",
+        "primary_crop": req.primary_crop or "Soybean",
+        "farm_size_acres": req.farm_size_acres or 0.0,
+        "notes": req.notes,
+        "status": "pending",
+        "created_at": now_iso,
+        "updated_at": now_iso,
+    }
+    res = sb.table("fpo_join_requests").insert(payload).execute()
+    if not res.data:
+        raise HTTPException(status_code=500, detail="Failed to create join request")
+
+    # Notify farmer of submission confirmation
+    try:
+        fpo_data = sb.table("fpos").select("name").eq("id", req.fpo_id).maybe_single().execute().data or {}
+        fpo_name = fpo_data.get("name", "FPO")
+        
+        p_chk = sb.table("profiles").select("id").eq("id", req.farmer_id).execute()
+        if p_chk.data:
+            sb.table("notifications").insert({
+                "user_id": req.farmer_id,
+                "title": f"FPO Join Request: {fpo_name}",
+                "message": f"Your request to join {fpo_name} is under review by the FPO board.",
+                "category": "transaction",
+                "link_url": "/farmer/discover-fpo",
+                "is_read": False,
+                "created_at": now_iso,
+            }).execute()
+    except Exception as e:
+        print(f"[!] Notification error: {e}")
+
+    return {
+        "message": "Join request submitted successfully!",
+        "request": res.data[0]
+    }
+
+
+@router.get("/join-requests")
+def list_join_requests(fpo_id: str = DEFAULT_FPO_ID, status: Optional[str] = None):
+    """
+    List membership join requests for an FPO.
+    """
+    sb = get_supabase_admin()
+    q = sb.table("fpo_join_requests").select("*, fpos(name, district)").eq("fpo_id", fpo_id)
+    if status:
+        q = q.eq("status", status)
+    res = q.order("created_at", desc=True).execute()
+    return res.data or []
+
+
+@router.post("/join-requests/{request_id}/resolve")
+def resolve_join_request(request_id: str, action: FpoJoinRequestResolve):
+    """
+    FPO administrator approves or rejects a farmer's join request.
+    If approved:
+      1. Creates entry in fpo_members
+      2. Updates farmer profile fpo_id
+      3. Increments fpos total_members
+      4. Creates cross-role notification for the farmer
+    """
+    sb = get_supabase_admin()
+    r_res = sb.table("fpo_join_requests").select("*, fpos(name)").eq("id", request_id).maybe_single().execute()
+    if not r_res.data:
+        raise HTTPException(status_code=404, detail="Join request not found")
+
+    req = r_res.data
+    now_str = datetime.utcnow().isoformat()
+
+    # Update request status
+    update_data = {
+        "status": action.status,
+        "reviewed_by": action.reviewed_by,
+        "reviewed_at": now_str,
+        "notes": (req.get("notes") or "") + (f" | Review Note: {action.review_notes}" if action.review_notes else ""),
+        "updated_at": now_str,
+    }
+    sb.table("fpo_join_requests").update(update_data).eq("id", request_id).execute()
+
+    fpo_name = (req.get("fpos") or {}).get("name") or "FPO"
+    farmer_id = req["farmer_id"]
+
+    if action.status == "approved":
+        # 1. Add to fpo_members
+        parts = req["farmer_name"].split()
+        member_initials = ("".join([p[0].upper() for p in parts[:2]])) if parts else "FM"
+        member_payload = {
+            "fpo_id": req["fpo_id"],
+            "farmer_id": farmer_id,
+            "farmer_name": req["farmer_name"],
+            "village": req.get("village") or "Village",
+            "district": req.get("district") or "Latur",
+            "phone": req.get("phone") or "",
+            "primary_crop": req.get("primary_crop") or "Soybean",
+            "farm_size_acres": float(req.get("farm_size_acres") or 0),
+            "avatar_initials": member_initials,
+            "created_at": now_str,
+        }
+        sb.table("fpo_members").insert(member_payload).execute()
+
+        # 2. Update profile with fpo_id
+        try:
+            sb.table("profiles").update({"fpo_id": req["fpo_id"]}).eq("id", farmer_id).execute()
+        except Exception as p_err:
+            print(f"[!] Warning updating profile fpo_id: {p_err}")
+
+        # 3. Increment total_members on fpo
+        try:
+            m_count = len(sb.table("fpo_members").select("id").eq("fpo_id", req["fpo_id"]).execute().data or [])
+            sb.table("fpos").update({"total_members": m_count}).eq("id", req["fpo_id"]).execute()
+        except Exception:
+            pass
+
+        # 4. Notify farmer of approval
+        try:
+            p_chk = sb.table("profiles").select("id").eq("id", farmer_id).execute()
+            if p_chk.data:
+                sb.table("notifications").insert({
+                    "user_id": farmer_id,
+                    "title": "FPO Membership Approved! 🏛️",
+                    "message": f"Congratulations! Your request to join '{fpo_name}' has been approved. You can now pool lots for collective bulk premium.",
+                    "category": "transaction",
+                    "link_url": "/farmer/lots",
+                    "is_read": False,
+                    "created_at": now_str,
+                }).execute()
+        except Exception as notify_err:
+            print(f"[!] Farmer approval notification failed: {notify_err}")
+
+    elif action.status == "rejected":
+        # Notify farmer of rejection
+        try:
+            p_chk = sb.table("profiles").select("id").eq("id", farmer_id).execute()
+            if p_chk.data:
+                sb.table("notifications").insert({
+                    "user_id": farmer_id,
+                    "title": "FPO Join Request Update",
+                    "message": f"Your request to join '{fpo_name}' was declined. {action.review_notes or ''}",
+                    "category": "transaction",
+                    "link_url": "/farmer/discover-fpo",
+                    "is_read": False,
+                    "created_at": now_str,
+                }).execute()
+        except Exception as notify_err:
+            print(f"[!] Farmer rejection notification failed: {notify_err}")
+
+    return {
+        "message": f"Join request {action.status} successfully.",
+        "status": action.status,
+        "request_id": request_id,
     }

@@ -27,6 +27,8 @@ import FpoDashboard from './features/fpo/FpoDashboard';
 import MemberDirectory from './features/fpo/MemberDirectory';
 import AggregationFlow from './features/fpo/AggregationFlow';
 import FpoAggregatedLotsView from './features/fpo/FpoAggregatedLotsView';
+import DiscoverFpos from './features/fpo/DiscoverFpos';
+import JoinRequestQueue from './features/fpo/JoinRequestQueue';
 // Logistics & Storage (Phase 6)
 import TransportBookingView from './features/logistics/TransportBookingView';
 import StorageFacilitiesView from './features/storage/StorageFacilitiesView';
@@ -52,6 +54,7 @@ function App() {
             <Route path="lots/:lotId" element={<FarmerLotsView />} />
             <Route path="create-lot" element={<LotCreationForm />} />
             <Route path="profile" element={<FarmerProfilePage />} />
+            <Route path="discover-fpo" element={<DiscoverFpos />} />
             <Route path="logistics" element={<TransportBookingView userRole="farmer" />} />
             <Route path="storage" element={<StorageFacilitiesView />} />
           </Route>
@@ -80,6 +83,7 @@ function App() {
             <Route index element={<Navigate to="/fpo/dashboard" replace />} />
             <Route path="dashboard" element={<FpoDashboard />} />
             <Route path="members" element={<MemberDirectory />} />
+            <Route path="join-requests" element={<JoinRequestQueue />} />
             <Route path="aggregate" element={<AggregationFlow />} />
             <Route path="lots" element={<FpoAggregatedLotsView />} />
           </Route>

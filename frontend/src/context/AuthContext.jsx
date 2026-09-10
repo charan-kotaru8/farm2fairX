@@ -75,13 +75,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signup = async (email, password, fullName, role = 'farmer') => {
+    // Security: Only allow public signup for farmer, buyer, or fpo. Admin must be provisioned via backend seed script.
+    const allowedRoles = ['farmer', 'buyer', 'fpo'];
+    const sanitizedRole = allowedRoles.includes(role) ? role : 'farmer';
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           full_name: fullName,
-          role: role,
+          role: sanitizedRole,
         },
       },
     });
@@ -91,7 +95,7 @@ export const AuthProvider = ({ children }) => {
       await supabase.from('profiles').upsert({
         id: data.user.id,
         full_name: fullName,
-        role: role,
+        role: sanitizedRole,
         updated_at: new Date().toISOString(),
       });
     }

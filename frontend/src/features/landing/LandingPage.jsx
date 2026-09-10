@@ -2,8 +2,6 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
-import { useAuth } from '../../context/AuthContext';
-import LanguageSelector from '../../components/ui/LanguageSelector';
 import { 
   Sparkles, ShieldCheck, TrendingUp, Truck, 
   ArrowRight, CheckCircle2, Globe, Building 
@@ -12,40 +10,11 @@ import {
 export default function LandingPage() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const { user, profile } = useAuth();
-  const userRole = profile?.role || user?.user_metadata?.role || 'farmer';
-  const dashboardPath = `/${userRole}/dashboard`;
 
   const isShallowLang = ['gu'].includes(i18n.language);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
-      {/* Top Bar with Language Selector */}
-      <div className="border-b border-slate-200/80 bg-white/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-heading font-extrabold text-xl text-primary">
-            🌾 Farm2Fair
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-              Govt. APMC Linkage
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <LanguageSelector />
-            <button
-              onClick={() => navigate('/login')}
-              className="text-xs font-bold text-slate-700 hover:text-slate-900 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
-            >
-              {t('landing.login')}
-            </button>
-            <button
-              onClick={() => navigate('/signup')}
-              className="text-xs font-bold bg-primary hover:bg-primary-hover text-white px-3.5 py-1.5 rounded-xl shadow-xs transition-colors"
-            >
-              {t('landing.signup')}
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* Hero Section */}
       <div className="max-w-5xl mx-auto px-4 pt-16 pb-20 flex flex-col items-center text-center">
@@ -95,10 +64,10 @@ export default function LandingPage() {
             <span>🏢</span> {t('landing.ctaBuyer')}
           </button>
           <button 
-            onClick={() => navigate('/admin/dashboard')}
-            className="bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 px-5 py-3 rounded-2xl font-bold text-sm transition-all flex items-center gap-2"
+            onClick={() => navigate('/fpo/dashboard')}
+            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 px-5 py-3 rounded-2xl font-bold text-sm transition-all flex items-center gap-2"
           >
-            <span>🛡️</span> {t('landing.ctaAdmin')}
+            <span>🏛️</span> {t('landing.ctaFpo')}
           </button>
         </div>
 

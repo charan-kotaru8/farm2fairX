@@ -118,6 +118,27 @@ def verify_buyer(buyer_id: str, action: AdminVerifyRequest):
     
     # Return updated buyer
     fresh_buyer = sb.table("buyers").select("*").eq("id", buyer_id).single().execute()
+    buyer_row = fresh_buyer.data or {}
+
+    # Cross-role notification: Notify buyer of KYC verification update
+    buyer_profile_id = buyer_row.get("profile_id")
+    if buyer_profile_id:
+        try:
+            status_title = action.verification_status.replace("_", " ").title()
+            p_chk = sb.table("profiles").select("id").eq("id", buyer_profile_id).execute()
+            if p_chk.data:
+                sb.table("notifications").insert({
+                    "user_id": buyer_profile_id,
+                    "title": f"KYC Verification: {status_title}",
+                    "message": f"Your business verification status is now '{status_title}'. Current Tier: {tier_result.get('new_tier', 'basic').title()}.",
+                    "category": "verification",
+                    "link_url": "/buyer/marketplace",
+                    "is_read": False,
+                    "created_at": datetime.utcnow().isoformat(),
+                }).execute()
+        except Exception as notify_err:
+            print(f"[!] Buyer KYC notification failed: {notify_err}")
+
     return {
         "message": f"Buyer status updated to '{action.verification_status}'",
         "buyer": fresh_buyer.data,

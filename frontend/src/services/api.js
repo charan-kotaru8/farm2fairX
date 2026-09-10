@@ -297,6 +297,55 @@ export const api = {
     return res.json();
   },
 
+  // FPO Join Workflow (§1.2)
+  async discoverFpos({ district, farmerId } = {}) {
+    const params = new URLSearchParams();
+    if (district && district !== 'All') params.set('district', district);
+    if (farmerId) params.set('farmer_id', farmerId);
+    const qs = params.toString();
+    const url = qs ? `${API_BASE}/fpo/discover?${qs}` : `${API_BASE}/fpo/discover`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to discover FPOs');
+    return res.json();
+  },
+
+  async submitFpoJoinRequest(data) {
+    const res = await fetch(`${API_BASE}/fpo/join-request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Failed to submit join request');
+    }
+    return res.json();
+  },
+
+  async getFpoJoinRequests({ fpoId, status } = {}) {
+    const params = new URLSearchParams();
+    if (fpoId) params.set('fpo_id', fpoId);
+    if (status && status !== 'All') params.set('status', status);
+    const qs = params.toString();
+    const url = qs ? `${API_BASE}/fpo/join-requests?${qs}` : `${API_BASE}/fpo/join-requests`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to fetch FPO join requests');
+    return res.json();
+  },
+
+  async resolveFpoJoinRequest(requestId, resolutionData) {
+    const res = await fetch(`${API_BASE}/fpo/join-requests/${requestId}/resolve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(resolutionData),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Failed to resolve join request');
+    }
+    return res.json();
+  },
+
   // Logistics & Transport (Phase 6)
   async getTransportProviders({ lotId, farmerLat, farmerLng, minCapacity, vehicleType } = {}) {
     const params = new URLSearchParams();

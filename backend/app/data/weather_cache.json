@@ -7,7 +7,7 @@
     "risk": "clear",
     "source": "NASA POWER (Live Daily)",
     "description": "Dry conditions (28.0\u00b0C, 0.0 mm rain) support timely logistics.",
-    "fetched_at": "2026-09-09T14:35:23.755926",
+    "fetched_at": "2026-09-10T08:58:41.203551",
     "market_name": "Latur APMC"
   },
   "Sangli APMC": {
@@ -18,7 +18,7 @@
     "risk": "clear",
     "source": "NASA POWER (Live Daily)",
     "description": "Dry conditions (28.0\u00b0C, 0.0 mm rain) support timely logistics.",
-    "fetched_at": "2026-09-09T18:33:30.560125",
+    "fetched_at": "2026-09-10T08:58:51.389991",
     "market_name": "Sangli APMC"
   }
 }

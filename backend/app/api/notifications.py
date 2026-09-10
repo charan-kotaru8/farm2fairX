@@ -27,25 +27,36 @@ def list_notifications(user_id: Optional[str] = None, role: Optional[str] = None
     if role == "farmer":
         notifications = [
             n for n in notifications
-            if n.get("category") in ["transaction", "price_alert", "market", "transport", "weather"]
+            if n.get("category") in ["transaction", "price_alert", "market", "transport", "weather", "fpo", "system"]
             or "offer" in (n.get("title", "")).lower()
             or "transport" in (n.get("title", "")).lower()
             or "price" in (n.get("title", "")).lower()
+            or "fpo" in (n.get("title", "")).lower()
         ]
     elif role == "buyer":
         notifications = [
             n for n in notifications
-            if n.get("category") in ["transaction", "transport", "market", "buyer_verification"]
+            if n.get("category") in ["transaction", "transport", "market", "verification", "buyer_verification", "system"]
             or "offer" in (n.get("title", "")).lower()
             or "transport" in (n.get("title", "")).lower()
             or "verification" in (n.get("title", "")).lower()
+            or "kyc" in (n.get("title", "")).lower()
+        ]
+    elif role == "fpo":
+        notifications = [
+            n for n in notifications
+            if n.get("category") in ["fpo", "transaction", "market", "system"]
+            or "fpo" in (n.get("title", "")).lower()
+            or "member" in (n.get("title", "")).lower()
+            or "join" in (n.get("title", "")).lower()
         ]
     elif role == "admin":
         notifications = [
             n for n in notifications
-            if n.get("category") in ["grievance", "admin", "verification", "audit"]
+            if n.get("category") in ["grievance", "admin", "verification", "audit", "system"]
             or (n.get("link_url") or "").startswith("/admin")
             or "grievance" in (n.get("title", "")).lower()
+            or "verification" in (n.get("title", "")).lower()
         ]
 
     unread_count = len([n for n in notifications if not n.get("is_read")])

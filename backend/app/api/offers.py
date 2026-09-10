@@ -89,6 +89,27 @@ def submit_offer(offer: OfferCreate):
         "status": "offer_received",
         "updated_at": datetime.utcnow().isoformat()
     }).eq("id", offer.lot_id).execute()
+
+    # 5. Notify farmer of the new offer
+    try:
+        lot_farmer = sb.table("lots").select("farmer_id, crops(name)").eq("id", offer.lot_id).maybe_single().execute().data
+        farmer_id = lot_farmer.get("farmer_id") if lot_farmer else None
+        crop_info = (lot_farmer.get("crops") or {}).get("name", "produce") if lot_farmer else "produce"
+
+        if farmer_id:
+            p_chk = sb.table("profiles").select("id").eq("id", farmer_id).execute()
+            if p_chk.data:
+                sb.table("notifications").insert({
+                    "user_id": farmer_id,
+                    "title": f"New Offer: ₹{offer.price_per_quintal}/q",
+                    "message": f"{buyer.get('business_name', 'A verified buyer')} submitted an offer for {offer.offered_quantity} quintals of {crop_info}.",
+                    "category": "transaction",
+                    "link_url": "/farmer/lots",
+                    "is_read": False,
+                    "created_at": datetime.utcnow().isoformat(),
+                }).execute()
+    except Exception as notify_err:
+        print(f"[!] Farmer notification failed: {notify_err}")
     
     return res.data[0] if res.data else {"message": "Offer submitted successfully"}
 
@@ -158,6 +179,48 @@ def accept_offer(offer_id: str):
                 "payout_status": "escrow",
             }).eq("id", tm["id"]).execute()
         fpo_updated = True
+
+    # 6. Cross-role notification: Notify accepted buyer
+    try:
+        buyer_info = sb.table("buyers").select("profile_id, business_name").eq("id", buyer_id).maybe_single().execute().data
+        buyer_profile_id = buyer_info.get("profile_id") if buyer_info else None
+        if buyer_profile_id:
+            p_chk = sb.table("profiles").select("id").eq("id", buyer_profile_id).execute()
+            if p_chk.data:
+                sb.table("notifications").insert({
+                    "user_id": buyer_profile_id,
+                    "title": f"Offer Accepted! (₹{offer['price_per_quintal']}/q)",
+                    "message": f"Farmer accepted your offer of ₹{offer['price_per_quintal']}/q. Escrow and logistics are ready to schedule.",
+                    "category": "transaction",
+                    "link_url": "/buyer/marketplace",
+                    "is_read": False,
+                    "created_at": datetime.utcnow().isoformat(),
+                }).execute()
+    except Exception as notify_err:
+        print(f"[!] Accepted buyer notification failed: {notify_err}")
+
+    # 7. Notify competing buyers of closure
+    try:
+        for other in other_offers:
+            other_data = sb.table("buyer_offers").select("buyer_id, price_per_quintal").eq("id", other["id"]).maybe_single().execute().data
+            if other_data:
+                comp_buyer_id = other_data.get("buyer_id")
+                comp_buyer_info = sb.table("buyers").select("profile_id").eq("id", comp_buyer_id).maybe_single().execute().data
+                comp_profile_id = comp_buyer_info.get("profile_id") if comp_buyer_info else None
+                if comp_profile_id:
+                    p_chk = sb.table("profiles").select("id").eq("id", comp_profile_id).execute()
+                    if p_chk.data:
+                        sb.table("notifications").insert({
+                            "user_id": comp_profile_id,
+                            "title": "Offer Not Selected",
+                            "message": "Another competing offer was accepted by the farmer for this lot.",
+                            "category": "transaction",
+                            "link_url": "/buyer/marketplace",
+                            "is_read": False,
+                            "created_at": datetime.utcnow().isoformat(),
+                        }).execute()
+    except Exception as comp_err:
+        print(f"[!] Competing buyer notification failed: {comp_err}")
     
     return {
         "message": "Offer accepted successfully! Lot marked as offer_accepted.",
@@ -174,6 +237,10 @@ def reject_offer(offer_id: str, req: OfferRejectRequest):
     """Farmer rejects an offer gracefully with reason."""
     sb = get_supabase_admin()
     
+    existing_offer = sb.table("buyer_offers").select("buyer_id, price_per_quintal, lot_id").eq("id", offer_id).maybe_single().execute().data
+    if not existing_offer:
+        raise HTTPException(status_code=404, detail="Offer not found")
+
     res = sb.table("buyer_offers").update({
         "status": "rejected",
         "rejection_reason": req.rejection_reason,
@@ -182,6 +249,27 @@ def reject_offer(offer_id: str, req: OfferRejectRequest):
     
     if not res.data:
         raise HTTPException(status_code=404, detail="Offer not found")
+
+    # Cross-role notification: Notify buyer of rejection
+    buyer_id = existing_offer.get("buyer_id")
+    if buyer_id:
+        try:
+            buyer_info = sb.table("buyers").select("profile_id").eq("id", buyer_id).maybe_single().execute().data
+            buyer_profile_id = buyer_info.get("profile_id") if buyer_info else None
+            if buyer_profile_id:
+                p_chk = sb.table("profiles").select("id").eq("id", buyer_profile_id).execute()
+                if p_chk.data:
+                    sb.table("notifications").insert({
+                        "user_id": buyer_profile_id,
+                        "title": "Offer Declined by Farmer",
+                        "message": f"Your offer of ₹{existing_offer.get('price_per_quintal')}/q was declined. Reason: {req.rejection_reason}",
+                        "category": "transaction",
+                        "link_url": "/buyer/marketplace",
+                        "is_read": False,
+                        "created_at": datetime.utcnow().isoformat(),
+                    }).execute()
+        except Exception as notify_err:
+            print(f"[!] Buyer rejection notification failed: {notify_err}")
         
     return {
         "message": "Offer rejected.",
