@@ -147,6 +147,121 @@ def get_fpo_dashboard_stats(fpo_id: Optional[str] = None, user_id: Optional[str]
     # 6. Bulk premium calculation (+Rs 170/q standard bulk uplift)
     estimated_bulk_gain = agg_quantity * 170.0
 
+    # 7. AI context — derive dominant crop + district market for AI recommendations (no hardcoding)
+    ai_context = None
+    try:
+        # Find the dominant crop by quantity across candidate lots
+        crop_qty: dict = {}
+        crop_name_map: dict = {}
+        for lot in candidate_lots:
+            cid = lot.get("crop_id")
+            if not cid:
+                continue
+            crop_qty[cid] = crop_qty.get(cid, 0) + float(lot.get("quantity") or 0)
+            crop_info = lot.get("crops") or {}
+            if cid not in crop_name_map and crop_info.get("name"):
+                crop_name_map[cid] = crop_info["name"]
+
+        dominant_crop_id = max(crop_qty, key=crop_qty.get) if crop_qty else None
+        dominant_crop_name = crop_name_map.get(dominant_crop_id) if dominant_crop_id else None
+
+        # If no candidate lots, try aggregated lots
+        if not dominant_crop_id and agg_lots:
+            agg_details = sb.table("lots") \
+                .select("id, crop_id, crops(name)") \
+                .in_("id", [l["id"] for l in agg_lots[:5]]) \
+                .execute().data or []
+            for lot in agg_details:
+                cid = lot.get("crop_id")
+                if cid:
+                    dominant_crop_id = cid
+                    dominant_crop_name = (lot.get("crops") or {}).get("name")
+                    break
+
+        # If still no crop found, check lots of member farmers in this FPO
+        if not dominant_crop_id and members_res.data:
+            member_farmer_ids = [m.get("farmer_id") for m in members_res.data if m.get("farmer_id")]
+            if member_farmer_ids:
+                m_lots = sb.table("lots").select("id, crop_id, crops(name)").in_("farmer_id", member_farmer_ids[:20]).execute().data or []
+                for lot in m_lots:
+                    cid = lot.get("crop_id")
+                    if cid:
+                        dominant_crop_id = cid
+                        dominant_crop_name = (lot.get("crops") or {}).get("name")
+                        break
+
+        # Fallback to the top crop in the DB that has market prices or active records
+        if not dominant_crop_id:
+            active_p = sb.table("market_prices").select("crop_id, crops(name)").limit(1).execute().data or []
+            if active_p and active_p[0].get("crop_id"):
+                dominant_crop_id = active_p[0]["crop_id"]
+                dominant_crop_name = (active_p[0].get("crops") or {}).get("name") or "Soybean"
+            else:
+                c_res = sb.table("crops").select("id, name").limit(1).execute().data or []
+                if c_res:
+                    dominant_crop_id = c_res[0]["id"]
+                    dominant_crop_name = c_res[0]["name"]
+
+        # Find the nearest APMC market for the FPO district
+        fpo_district = fpo.get("district") or ""
+        market_id = None
+        market_name = None
+        if fpo_district:
+            markets_res = sb.table("markets") \
+                .select("id, name, district") \
+                .ilike("district", f"%{fpo_district}%") \
+                .limit(1) \
+                .execute()
+            if markets_res.data:
+                market_id = markets_res.data[0]["id"]
+                market_name = markets_res.data[0]["name"]
+
+        # Fallback: pick the first market in the DB
+        if not market_id:
+            first_market = sb.table("markets").select("id, name").limit(1).execute()
+            if first_market.data:
+                market_id = first_market.data[0]["id"]
+                market_name = first_market.data[0]["name"]
+
+        # Latest aggregated lot or candidate lot for buyer matching
+        latest_agg_lot_id = agg_lots[0]["id"] if agg_lots else None
+        if not latest_agg_lot_id:
+            if candidate_lots:
+                latest_agg_lot_id = candidate_lots[0]["id"]
+            else:
+                # Any lot in the database for this crop to allow real matching
+                matched_lot = sb.table("lots").select("id").eq("crop_id", dominant_crop_id).limit(1).execute().data or []
+                if matched_lot:
+                    latest_agg_lot_id = matched_lot[0]["id"]
+                else:
+                    any_lot = sb.table("lots").select("id").limit(1).execute().data or []
+                    if any_lot:
+                        latest_agg_lot_id = any_lot[0]["id"]
+
+        # Build list of available crops for selector
+        available_crops = []
+        seen_cids = set()
+        for lot in candidate_lots:
+            cid = lot.get("crop_id")
+            cname = (lot.get("crops") or {}).get("name")
+            if cid and cid not in seen_cids and cname:
+                seen_cids.add(cid)
+                available_crops.append({"crop_id": cid, "crop_name": cname})
+        if not available_crops and dominant_crop_id and dominant_crop_name:
+            available_crops.append({"crop_id": dominant_crop_id, "crop_name": dominant_crop_name})
+
+        if dominant_crop_id and market_id:
+            ai_context = {
+                "crop_id": dominant_crop_id,
+                "crop_name": dominant_crop_name,
+                "market_id": market_id,
+                "market_name": market_name,
+                "aggregated_lot_id": latest_agg_lot_id,
+                "available_crops": available_crops,
+            }
+    except Exception as e:
+        print(f"[!] Could not build AI context: {e}")
+
     return {
         "fpo": fpo,
         "total_members": total_members,
@@ -156,6 +271,7 @@ def get_fpo_dashboard_stats(fpo_id: Optional[str] = None, user_id: Optional[str]
         "aggregated_quantity_quintals": round(agg_quantity, 1),
         "total_escrow_amount": round(total_escrow_amount, 2),
         "estimated_bulk_gain": round(estimated_bulk_gain, 2),
+        "ai_context": ai_context,
         "recent_activity": [
             {
                 "id": "act-1",

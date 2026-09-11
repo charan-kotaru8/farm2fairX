@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import { Users, Layers, TrendingUp, ShieldCheck, ArrowRight, CheckCircle2, Sparkles, AlertCircle } from 'lucide-react';
+import FpoAiInsightsPanel from './FpoAiInsightsPanel';
 
 export default function FpoDashboard() {
   const navigate = useNavigate();
@@ -205,6 +206,9 @@ export default function FpoDashboard() {
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>
+
+      {/* AI Insights - always visible, driven by ai_context from backend (no hardcoding) */}
+      <FpoAiInsightsPanel aiCtx={stats?.ai_context} />
 
       {/* Grid: 2 Columns (Pool Eligibility Rules + Recent Activity) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
