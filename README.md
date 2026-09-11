@@ -10,7 +10,7 @@ Farm2Fair is a production-grade, full-stack agricultural marketplace platform bu
 2. **AI/ML-Driven Price Intelligence & Multi-Factor Matching (§4):** Dual-tier model:
    - **Linear Regression:** Computes price band, trend slope (₹/day), and R² confidence from official APMC time series.
    - **Rule Engine Decision Table:** Determines *Sell Now*, *Wait*, or *Compare Buyers* from price momentum, arrival volume shifts, and NASA POWER weather signals.
-   - **Multi-Factor Buyer Matching:** Weighted scoring (Distance 35%, Quantity 30%, Quality 20%, Reliability 15%).
+   - **Multi-Factor Buyer Matching:** Crop compatibility is a hard pre-filter (buyers must have an open requirement for the lot's exact crop). Eligible buyers are then weighted-scored: Price Fit 25%, Quantity Fit 20%, Quality Match 20%, Distance 20%, Reliability 15%.
 3. **NASA POWER Agroclimatology Integration:** Live and cached daily meteorological parameters (precipitation/rainfall, ambient temperature) by APMC coordinates as leading indicators for logistics feasibility.
 4. **Locked-Down Farmer Benefit Formula (§7.1):** Single source of truth across per-lot cards and admin governance: `(accepted_offer − first_available_offer) × quantity`.
 5. **Unified Logistics & Farmgate Quality (§6):** One lot, one source of truth. Transport status transitions directly drive lot status. Buyer agents perform farmgate inspections with Before/After certificates.

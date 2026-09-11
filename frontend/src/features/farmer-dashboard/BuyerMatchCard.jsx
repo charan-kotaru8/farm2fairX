@@ -6,7 +6,6 @@ import BuyerBadge from '../../components/ui/BuyerBadge';
 import HowMatchingWorksDrawer from './HowMatchingWorksDrawer';
 
 const FACTOR_COLORS = {
-  crop_compatibility: 'bg-emerald-500',
   quantity_fit: 'bg-blue-500',
   quality_match: 'bg-purple-500',
   distance: 'bg-amber-500',

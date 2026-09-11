@@ -2,21 +2,19 @@ import React from 'react';
 import { X } from 'lucide-react';
 
 const FACTOR_COLORS = {
-  crop_compatibility: 'bg-emerald-500',
+  price_fit: 'bg-rose-500',
   quantity_fit: 'bg-blue-500',
   quality_match: 'bg-purple-500',
   distance: 'bg-amber-500',
-  price_fit: 'bg-rose-500',
   reliability: 'bg-teal-500',
 };
 
 const FACTOR_DESCRIPTIONS = {
-  crop_compatibility: 'Does the buyer actively need this crop?',
-  quantity_fit: 'How well do buyer and lot quantities match?',
-  quality_match: 'Does the quality grade meet buyer requirements?',
-  distance: 'How close is the buyer to the farmer\'s market?',
-  price_fit: 'Is the buyer willing to pay near-market rates?',
-  reliability: 'Buyer verification tier and transaction history.',
+  price_fit: 'Is the buyer willing to pay near-market rates? (Highest weight: 25%)',
+  quantity_fit: 'How well do buyer and lot quantities match? (20%)',
+  quality_match: 'Does the quality grade meet buyer requirements? (20%)',
+  distance: 'How close is the buyer to the farmer\'s market? (20%)',
+  reliability: 'Buyer verification tier and transaction history. (15%)',
 };
 
 export default function HowMatchingWorksDrawer({ weights, onClose }) {
@@ -45,9 +43,17 @@ export default function HowMatchingWorksDrawer({ weights, onClose }) {
         </div>
 
         <div className="p-6 space-y-6">
+          {/* Hard pre-filter callout */}
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 text-xs text-emerald-900 flex items-start gap-2.5">
+            <span className="text-base leading-none mt-0.5">🌾</span>
+            <div>
+              <strong className="font-bold">Required Pre-Filter:</strong> Crop compatibility is a hard requirement. Only verified buyers with an active, open purchase requirement for the lot's exact crop are considered and scored.
+            </div>
+          </div>
+
           {/* Intro */}
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Each buyer is scored on 6 factors. Every factor gets a score from 0–100, then weighted by importance. The final match score is the weighted sum.
+            Eligible buyers are scored on 5 transparent factors: <strong>Price Fit (25%)</strong>, <strong>Quantity Fit (20%)</strong>, <strong>Quality Match (20%)</strong>, <strong>Distance (20%)</strong>, and <strong>Reliability (15%)</strong>. Each factor scores 0–100, and the final match score is the weighted sum.
           </p>
 
           {/* Stacked weight bar */}

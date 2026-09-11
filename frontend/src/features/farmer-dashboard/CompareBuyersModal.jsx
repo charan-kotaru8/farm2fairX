@@ -7,7 +7,6 @@ import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { X, RefreshCw, BarChart3, Star, ShieldCheck, MapPin, ExternalLink, Sparkles, CheckCircle2 } from 'lucide-react';
 
 const FACTOR_COLORS = {
-  crop_compatibility: 'bg-emerald-500',
   quantity_fit: 'bg-blue-500',
   quality_match: 'bg-purple-500',
   distance: 'bg-amber-500',
